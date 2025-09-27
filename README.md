@@ -1,50 +1,114 @@
-# Welcome to your Expo app 👋
+# NutriLens
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A kid-friendly React Native app that scans grocery product barcodes and highlights ingredients that conflict with dietary settings.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Barcode Scanning**: Use device camera to scan product barcodes
+- **Dietary Analysis**: AI-powered ingredient analysis with color-coded results
+- **Kid-Friendly UI**: Simple, accessible design with owl mascot
+- **Dietary Settings**: Customizable food restrictions (dairy, gluten, meat, nuts, soy)
+- **Product History**: Save and review previously scanned products
+- **Search**: Find products by name or brand
 
-   ```bash
-   npm install
-   ```
+## Design System
 
-2. Start the app
+### Colors (5-color limit)
+- **Primary Green**: `#36C090` (safe ingredients)
+- **Warning Yellow**: `#F5C746` (caution ingredients)  
+- **Alert Red**: `#F35B5B` (avoid ingredients)
+- **Neutral Background**: `#F7F7FA` (background)
+- **Accent Blue**: `#5B8CFF` (links/mascot accents)
 
-   ```bash
-   npx expo start
-   ```
+### Typography
+- **Font**: Nunito (rounded sans serif)
+- **Weights**: Regular (400), Medium (500), SemiBold (600), Bold (700)
 
-In the output, you'll find options to open the app in a
+## Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Prerequisites
+- Node.js 18+
+- Expo CLI
+- iOS Simulator or Android Emulator (or physical device)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Installation
 
-## Get a fresh project
-
-When you're ready, run:
-
+1. Install dependencies:
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Start the development server:
+```bash
+npx expo start
+```
 
-## Learn more
+3. Run on device/simulator:
+- Press `i` for iOS simulator
+- Press `a` for Android emulator
+- Scan QR code with Expo Go app on physical device
 
-To learn more about developing your project with Expo, look at the following resources:
+### Permissions
+- **Camera**: Required for barcode scanning
+- **Storage**: Used for saving user settings and scan history
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Project Structure
 
-## Join the community
+```
+src/
+├── components/          # Reusable UI components
+│   ├── OwlMascot.tsx    # Animated owl mascot with moods
+│   ├── VerdictBadge.tsx # Product safety status badge
+│   ├── IngredientChip.tsx # Color-coded ingredient chips
+│   └── ...
+├── screens/             # Main app screens
+│   ├── HomeScreen.tsx   # Product details and verdict
+│   ├── SearchScreen.tsx # Product search
+│   ├── ScanScreen.tsx   # Barcode scanning
+│   ├── HistoryScreen.tsx # Scan history
+│   └── SettingsScreen.tsx # Dietary preferences
+├── context/             # React Context for state management
+├── hooks/               # Custom React hooks
+├── lib/                 # Utilities and business logic
+│   ├── colors.ts        # Design system colors
+│   ├── typography.ts    # Font system
+│   ├── verdict.ts       # Ingredient analysis engine
+│   └── mockData.ts      # Sample product data
+└── types/               # TypeScript type definitions
+```
 
-Join our community of developers creating universal apps.
+## Key Components
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### OwlMascot
+Animated owl character that changes mood based on product verdict:
+- **Happy**: Green verdict (safe)
+- **Concerned**: Yellow verdict (caution)
+- **Warning**: Red verdict (avoid)
+
+### Verdict Engine
+Analyzes product ingredients against user dietary settings:
+- **Safe**: No conflicting ingredients
+- **Caution**: Potential allergens or unclear ingredients
+- **Avoid**: Contains restricted ingredients
+
+### Mock Data
+Includes 12 realistic sample products with various dietary restrictions for testing.
+
+## Development Notes
+
+- Uses React Navigation for bottom tab navigation
+- AsyncStorage for data persistence
+- Expo Barcode Scanner for camera functionality
+- TypeScript for type safety
+- Accessible design with proper contrast and touch targets
+
+## Testing
+
+The app includes mock product data for testing. Try scanning these barcodes:
+- `1234567890123` - Organic Whole Milk (contains dairy)
+- `2345678901234` - Gluten-Free Bread (safe)
+- `3456789012345` - Chocolate Chip Cookies (contains gluten, dairy)
+
+## License
+
+MIT License
