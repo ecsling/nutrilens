@@ -1,168 +1,110 @@
-/**
- * Home screen showing product details and verdict
- */
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import EmptyState from '../components/EmptyState';
-import IngredientList from '../components/IngredientList';
-import OwlMascot from '../components/OwlMascot';
-import VerdictBadge from '../components/VerdictBadge';
-import { useSettings } from '../context/SettingsContext';
 import { colors } from '../lib/colors';
-import { addToHistory } from '../lib/storage';
-import { typography } from '../lib/typography';
-import { analyzeProduct, getOwlMood } from '../lib/verdict';
-import { OwlMood, Product, Verdict } from '../types';
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { settings } = useSettings();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [verdict, setVerdict] = useState<Verdict | null>(null);
 
-  // Analyze product when it changes
-  useEffect(() => {
-    if (product) {
-      const analysis = analyzeProduct(product, settings);
-      setVerdict(analysis);
-    }
-  }, [product, settings]);
-
-  // Get owl mood from verdict
-  const owlMood: OwlMood = verdict ? getOwlMood(verdict.productVerdict) : 'happy';
-
-  const handleScanAgain = () => {
-    (navigation as any).navigate('Scan');
+  const handleScanFood = () => {
+    (navigation as any).navigate('Scan'); // make sure your Scanner screen route is "Scan"
   };
 
-  const handleSaveToHistory = async () => {
-    if (!product || !verdict) return;
-
-    try {
-      const historyItem = {
-        id: Date.now().toString(),
-        productId: product.id,
-        name: product.name,
-        verdict: verdict.productVerdict,
-        scannedAt: new Date(),
-      };
-
-      await addToHistory(historyItem);
-      
-      Alert.alert(
-        'Saved!',
-        'Product added to your history.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to save to history. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
+  const handleSearch = () => {
+    (navigation as any).navigate('Search'); // make sure your Search screen route is "Search"
   };
-
-  const handleWhatThisMeans = () => {
-    Alert.alert(
-      'What the Colors Mean',
-      '🟢 Green: Safe ingredients that won\'t upset your tummy\n🟡 Yellow: Check with a grown-up first\n🔴 Red: Avoid these ingredients',
-      [{ text: 'Got it!' }]
-    );
-  };
-
-  if (!product) {
-    return (
-      <View style={styles.container}>
-        <EmptyState
-          title="Ready to Scan!"
-          message="Point me at a barcode to see if it's safe for you!"
-          mood="happy"
-        />
-        <TouchableOpacity 
-          style={styles.scanButton}
-          onPress={handleScanAgain}
-        >
-          <Ionicons name="camera" size={24} color={colors.text.inverse} />
-          <Text style={styles.scanButtonText}>Start Scanning</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Product Header */}
-      <View style={styles.productHeader}>
-        <View style={styles.productImageContainer}>
-          <Image 
-            source={{ uri: 'https://via.placeholder.com/120x120/36C090/FFFFFF?text=Product' }}
-            style={styles.productImage}
-            defaultSource={{ uri: 'https://via.placeholder.com/120x120/F7F7FA/718096?text=No+Image' }}
-          />
-        </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productBrand}>{product.brand}</Text>
-          {verdict && (
-            <VerdictBadge verdict={verdict.productVerdict} size="large" />
-          )}
-        </View>
-      </View>
+      {/* Header */}
+      <Text style={styles.headerTitle}>Make Healthier Food Choices</Text>
+      <Text style={styles.headerSubtitle}>
+        Scan any packaged food to get detailed nutrition info and personalized health warnings
+      </Text>
 
-      {/* Owl Mascot */}
-      {verdict && (
-        <OwlMascot 
-          mood={owlMood} 
-          message={verdict.summaryLine} 
-        />
-      )}
-
-      {/* Ingredients */}
-      {verdict && (
-        <IngredientList 
-          ingredients={verdict.perIngredientFlags}
-          title="Ingredients"
-        />
-      )}
-
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={handleScanAgain}
-        >
-          <Ionicons name="camera" size={20} color={colors.text.inverse} />
-          <Text style={styles.primaryButtonText}>Scan Again</Text>
+      {/* Buttons Row */}
+      <View style={styles.cardRow}>
+        <TouchableOpacity style={styles.card} onPress={handleScanFood}>
+          <Ionicons name="camera" size={32} color={colors.accentBlue} />
+          <Text style={styles.cardTitle}>Scan Food</Text>
+          <Text style={styles.cardSubtitle}>Use camera</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.secondaryButton}
-          onPress={handleSaveToHistory}
-        >
-          <Ionicons name="bookmark" size={20} color={colors.accentBlue} />
-          <Text style={styles.secondaryButtonText}>Save to History</Text>
+        <TouchableOpacity style={styles.card} onPress={handleSearch}>
+          <Ionicons name="search" size={32} color={colors.accentBlue} />
+          <Text style={styles.cardTitle}>Search</Text>
+          <Text style={styles.cardSubtitle}>Find products</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Help Link */}
-      <TouchableOpacity 
-        style={styles.helpLink}
-        onPress={handleWhatThisMeans}
-      >
-        <Text style={styles.helpLinkText}>What do the colors mean?</Text>
-        <Ionicons name="help-circle-outline" size={16} color={colors.accentBlue} />
-      </TouchableOpacity>
+      {/* Health Journey */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Your Health Journey</Text>
+        <Text style={styles.sectionSubtitle}>Track your progress this month</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Ionicons name="trending-up" size={20} color={colors.accentBlue} />
+            <Text style={styles.statNumber}>127</Text>
+            <Text style={styles.statLabel}>Foods Scanned</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="shield-checkmark" size={20} color={colors.accentBlue} />
+            <Text style={styles.statNumber}>23</Text>
+            <Text style={styles.statLabel}>Warnings Avoided</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="star" size={20} color={colors.accentBlue} />
+            <Text style={styles.statNumber}>89%</Text>
+            <Text style={styles.statLabel}>Healthy Choices</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Recent Scans */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Scans</Text>
+        <Text style={styles.sectionSubtitle}>Your latest food analysis</Text>
+        
+        <View style={styles.scanItem}>
+          <View>
+            <Text style={styles.scanTitle}>Organic Granola Bar</Text>
+            <Text style={styles.scanSubtitle}>Nature Valley • 2 hours ago</Text>
+          </View>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>A</Text>
+          </View>
+        </View>
+
+        <View style={styles.scanItem}>
+          <View>
+            <Text style={styles.scanTitle}>Greek Yogurt</Text>
+            <Text style={styles.scanSubtitle}>Chobani • 1 day ago</Text>
+          </View>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>A+</Text>
+          </View>
+        </View>
+
+        <View style={styles.scanItem}>
+          <View>
+            <Text style={styles.scanTitle}>Instant Ramen</Text>
+            <Text style={styles.scanSubtitle}>Maruchan • 2 days ago</Text>
+          </View>
+          <View style={[styles.warningBadge]}>
+            <Text style={styles.warningBadgeText}>3 warnings</Text>
+          </View>
+          <View style={[styles.badge, { backgroundColor: 'red' }]}>
+            <Text style={styles.badgeText}>D</Text>
+          </View>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -175,108 +117,117 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
-  productHeader: {
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 20,
+  },
+  cardRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  card: {
+    flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    elevation: 2,
+  },
+  cardTitle: {
+    marginTop: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 4,
+  },
+  section: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  productImageContainer: {
-    marginRight: 16,
-  },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-  },
-  productInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  productName: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: 4,
-    lineHeight: typography.lineHeight.tight * typography.fontSize.xl,
+    color: colors.text.primary,
   },
-  productBrand: {
-    fontSize: typography.fontSize.base,
+  sectionSubtitle: {
+    fontSize: 12,
     color: colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  buttonContainer: {
-    marginTop: 20,
-    gap: 12,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  primaryButton: {
+  statBox: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 6,
+    color: colors.text.primary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  scanItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.accentBlue,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    minHeight: 48,
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomColor: '#eee',
+    borderBottomWidth: 1,
   },
-  primaryButtonText: {
-    color: colors.text.inverse,
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semiBold,
-    marginLeft: 8,
+  scanTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
   },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.accentBlue,
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    minHeight: 48,
+  scanSubtitle: {
+    fontSize: 12,
+    color: colors.text.secondary,
   },
-  secondaryButtonText: {
-    color: colors.accentBlue,
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semiBold,
-    marginLeft: 8,
+  badge: {
+    backgroundColor: '#000',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginLeft: 6,
   },
-  scanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.accentBlue,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginHorizontal: 40,
-    minHeight: 48,
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
-  scanButtonText: {
-    color: colors.text.inverse,
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semiBold,
-    marginLeft: 8,
+  warningBadge: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 6,
   },
-  helpLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    paddingVertical: 12,
-  },
-  helpLinkText: {
-    color: colors.accentBlue,
-    fontSize: typography.fontSize.sm,
-    marginRight: 4,
+  warningBadgeText: {
+    color: '#E53935',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 
