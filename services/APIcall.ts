@@ -2,12 +2,19 @@
  * importing gemini api
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Constants from 'expo-constants';
 import { DietaryAnalysis, DietaryRestriction, ProductNutrition } from '../types/dietary';
 
-// Initialize Gemini AI
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+// Initialize Gemini AI - Enhanced debugging
+console.log('🔍 API Key Loading Debug:');
+console.log('  - process.env.EXPO_PUBLIC_GEMINI_API_KEY:', process.env.EXPO_PUBLIC_GEMINI_API_KEY ? 'EXISTS' : 'MISSING');
+console.log('  - Constants.expoConfig?.extra?.geminiApiKey:', Constants.expoConfig?.extra?.geminiApiKey ? 'EXISTS' : 'MISSING');
 
-console.log('Gemini API Key configured:', GEMINI_API_KEY ? 'Yes' : 'No');
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || 
+                      Constants.expoConfig?.extra?.geminiApiKey;
+
+console.log('Final Result: Gemini API Key configured:', GEMINI_API_KEY ? 'Yes ✅' : 'No ❌');
+
 if (GEMINI_API_KEY && GEMINI_API_KEY.includes('your_api_key_here')) {
   console.warn('⚠️ Please replace GEMINI_API_KEY with your actual API key!');
 }

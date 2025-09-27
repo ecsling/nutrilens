@@ -62,8 +62,7 @@ export const DIETARY_PROFILES: Record<string, DietaryRestriction> = {
     emoji: '🥑',
     rules: {
       maxCarbs: 20,
-      maxSugars: 5,
-      minFat: 70, // percentage of calories
+      maxSugars: 5 // percentage of calories
     },
     avoidIngredients: [
       'sugar', 'corn syrup', 'wheat', 'rice', 'potato', 'oats', 'barley',
