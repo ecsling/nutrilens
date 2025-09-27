@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { DietaryRestriction, DietaryAnalysis as IDietaryAnalysis } from '../types/dietary';
+import { DietaryRestriction, DietaryAnalysis as IDietaryAnalysis } from '../../types/dietary';
 
 interface DietaryAnalysisProps {
   analysis: IDietaryAnalysis;

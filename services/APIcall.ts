@@ -35,16 +35,16 @@ export const analyzeDietaryCompatibility = async (
   }
 
   try {
-    console.log('Initializing Gemini model: gemini-2.5-pro');
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    console.log('Initializing Gemini model: gemini-2.5-flash-lite');
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const prompt = createAnalysisPrompt(product, dietaryRestriction);
     console.log('Sending simplified request to Gemini API...');
     console.log('Prompt length:', prompt.length, 'characters');
     
-    // Create timeout promise (reduced to 10 seconds for simple analysis)
+    // Create timeout promise (15 seconds for flash-lite model)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Gemini API timeout after 10 seconds')), 10000);
+      setTimeout(() => reject(new Error('Gemini API timeout after 15 seconds')), 15000);
     });
     
     // Race between API call and timeout
@@ -232,7 +232,7 @@ export const explainDietaryRestriction = async (dietary: DietaryRestriction): Pr
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     
     const prompt = `Explain ${dietary.name} diet to a child in 2 simple sentences. What to avoid and why.`;
 

@@ -37,6 +37,7 @@ export interface DietaryAnalysis {
     limit: number;
     severity: 'low' | 'warning' | 'critical';
   }>;
+  productKey?: string; // For duplicate prevention
 }
 
 export interface ProductNutrition {
