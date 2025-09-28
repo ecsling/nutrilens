@@ -2,11 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import GlobalHeader from '../components/GlobalHeader';
 import { colors } from '../lib/colors';
@@ -16,10 +16,9 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <GlobalHeader />
+      <GlobalHeader title="Make Healthier Food Choices" />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
-        <Text style={styles.headerTitle}>Make Healthier Food Choices</Text>
       <Text style={styles.headerSubtitle}>
         Scan any packaged food to get detailed nutrition info and personalized health warnings
       </Text>
@@ -113,20 +112,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutralBG,
+    paddingTop: 15,
   },
   content: {
     padding: 20,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: 6,
   },
   headerSubtitle: {
     fontSize: 14,
     color: colors.text.secondary,
     marginBottom: 20,
+    marginTop: 10,
   },
   cardRow: {
     flexDirection: 'row',

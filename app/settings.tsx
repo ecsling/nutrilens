@@ -1,70 +1,117 @@
 /**
- * Settings screen
+ * Settings screen - Dietary Preferences
  */
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import GlobalHeader from '../components/GlobalHeader';
 import { colors } from '../lib/colors';
 import { typography } from '../lib/typography';
 
 const SettingsScreen: React.FC = () => {
+  const [dietaryPreferences, setDietaryPreferences] = useState({
+    avoidDairy: false,
+    avoidGluten: false,
+    avoidMeat: false,
+    avoidNuts: false,
+    avoidSoy: false,
+  });
+
+  const togglePreference = (key: keyof typeof dietaryPreferences) => {
+    setDietaryPreferences(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const dietaryOptions = [
+    {
+      key: 'avoidDairy' as keyof typeof dietaryPreferences,
+      title: 'Avoid Dairy',
+      emoji: '❓',
+    },
+    {
+      key: 'avoidGluten' as keyof typeof dietaryPreferences,
+      title: 'Avoid Gluten',
+      emoji: '🍎',
+    },
+    {
+      key: 'avoidMeat' as keyof typeof dietaryPreferences,
+      title: 'Avoid Meat',
+      emoji: '🍴',
+    },
+    {
+      key: 'avoidNuts' as keyof typeof dietaryPreferences,
+      title: 'Avoid Nuts',
+      emoji: '🌿',
+    },
+    {
+      key: 'avoidSoy' as keyof typeof dietaryPreferences,
+      title: 'Avoid Soy',
+      emoji: '❄️',
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <GlobalHeader title="Settings" />
+      <GlobalHeader showBackButton={true} title="Dietary Preferences" />
       
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header Message */}
+        <Text style={styles.headerMessage}>
+          Tell me what foods to watch out for, and I'll help you stay safe!
+        </Text>
+
+        {/* Dietary Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dietary Preferences</Text>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>No Dairy</Text>
-            <Text style={styles.settingDescription}>Avoid milk, cheese, and dairy products</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>No Gluten</Text>
-            <Text style={styles.settingDescription}>Avoid wheat, barley, and rye products</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>No Meat</Text>
-            <Text style={styles.settingDescription}>Avoid meat and animal products</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>No Nuts</Text>
-            <Text style={styles.settingDescription}>Avoid tree nuts and nut products</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>No Soy</Text>
-            <Text style={styles.settingDescription}>Avoid soy and soy-based products</Text>
+          {dietaryOptions.map((option, index) => (
+            <View key={option.key} style={styles.preferenceItem}>
+              <View style={styles.preferenceLeft}>
+                <View style={styles.emojiContainer}>
+                  <Text style={styles.emoji}>{option.emoji}</Text>
+                </View>
+                <Text style={styles.preferenceLabel}>{option.title}</Text>
+              </View>
+              <Switch
+                value={dietaryPreferences[option.key]}
+                onValueChange={() => togglePreference(option.key)}
+                trackColor={{ false: colors.text.secondary + '40', true: colors.accentBlue + '40' }}
+                thumbColor={dietaryPreferences[option.key] ? colors.accentBlue : colors.text.secondary}
+              />
+            </View>
+          ))}
+        </View>
+
+        {/* Help & Info Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Help & Info</Text>
+          <TouchableOpacity style={styles.infoItem}>
+            <View style={styles.infoLeft}>
+              <View style={styles.emojiContainer}>
+                <Text style={styles.emoji}>🎨</Text>
+              </View>
+              <Text style={styles.infoLabel}>About the Colors</Text>
+            </View>
+            <Ionicons 
+              name="chevron-forward" 
+              size={20} 
+              color={colors.text.secondary} 
+            />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Notifications</Text>
-            <Text style={styles.settingDescription}>Manage notification preferences</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Privacy</Text>
-            <Text style={styles.settingDescription}>Control your data and privacy</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>About</Text>
-            <Text style={styles.settingDescription}>App version and information</Text>
-          </TouchableOpacity>
+        {/* App Information */}
+        <View style={styles.appInfoSection}>
+          <Text style={styles.appName}>NutriLens</Text>
+          <Text style={styles.appVersion}>Version 1.0.0</Text>
+          <Text style={styles.appTagline}>Helping kids make safe food choices</Text>
         </View>
       </ScrollView>
     </View>
@@ -75,37 +122,100 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutralBG,
+    paddingTop: 15,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
+  headerMessage: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginVertical: 20,
+    lineHeight: 22,
+  },
   section: {
     backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 16,
-    marginTop: 20,
+    marginBottom: 20,
+    overflow: 'hidden',
   },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semiBold,
     color: colors.text.primary,
-    marginBottom: 16,
+    padding: 20,
+    paddingBottom: 12,
   },
-  settingItem: {
+  preferenceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.text.secondary + '20',
   },
-  settingLabel: {
+  preferenceLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  emojiContainer: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  emoji: {
+    fontSize: 20,
+  },
+  preferenceLabel: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
     color: colors.text.primary,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  infoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+  },
+  appInfoSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  appName: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.text.primary,
     marginBottom: 4,
   },
-  settingDescription: {
+  appVersion: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
+    marginBottom: 8,
+  },
+  appTagline: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
 });
 
