@@ -13,10 +13,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import OwlMascot from '../components/OwlMascot';
-import { useScanner } from '../hooks/useScanner';
-import { colors } from '../lib/colors';
-import { typography } from '../lib/typography';
+import OwlMascot from '../src/components/OwlMascot';
+import { useScanner } from '../src/hooks/useScanner';
+import { colors } from '../src/lib/colors';
+import { typography } from '../src/lib/typography';
 
 const { width, height } = Dimensions.get('window');
 const SCAN_AREA_SIZE = 250;

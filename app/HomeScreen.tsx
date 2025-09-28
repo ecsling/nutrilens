@@ -8,18 +8,22 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors } from '../lib/colors';
+import { colors } from '../src/lib/colors';
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
 
   const handleScanFood = () => {
-    (navigation as any).navigate('Scan'); // make sure your Scanner screen route is "Scan"
+    (navigation as any).navigate('scanner'); // make sure your Scanner screen route is "Scan"
   };
 
   const handleSearch = () => {
-    (navigation as any).navigate('Search'); // make sure your Search screen route is "Search"
+    (navigation as any).navigate('SearchScreenWrapper'); // make sure your Search screen route is "Search"
   };
+
+  const recentScan1 = { name: 'Organic Granola Bar', brand: 'Nature Valley', time: '2 hours ago', grade: 'A' };
+  const recentScan2 = { name: 'Greek Yogurt', brand: 'Chobani', time: '1 day ago', grade: 'A+' };
+  const recentScan3 = { name: 'Instant Ramen', brand: 'Maruchan', time: '2 days ago', grade: 'D', warnings: 3 };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
