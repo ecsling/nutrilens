@@ -3,23 +3,28 @@
  * Shows AI-powered dietary compatibility analysis results
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { DietaryRestriction, DietaryAnalysis as IDietaryAnalysis } from '../../lib/dietary';
+import { loadSettings } from '../../lib/storage';
 import { analyzeIngredientRisks } from '../../services/APIcalls';
+import { sendAskMomMessage, sendProductNotification, SMSMessage } from '../../services/SMSService';
+import { UserSettings } from '../../types';
 
 interface DietaryAnalysisProps {
   analysis: IDietaryAnalysis;
   dietaryRestriction: DietaryRestriction;
   productName: string;
   productIngredients?: string;
+  barcode?: string;
   onExplainMore?: () => void;
 }
 
@@ -31,11 +36,12 @@ interface IngredientRisk {
 }
 
 export const DietaryAnalysis: React.FC<DietaryAnalysisProps> = (props) => {
-  const { analysis, dietaryRestriction, productName, productIngredients, onExplainMore } = props;
+  const { analysis, dietaryRestriction, productName, productIngredients, barcode, onExplainMore } = props;
   const [showIngredients, setShowIngredients] = useState(false);
   const [showFullReportModal, setShowFullReportModal] = useState(false);
   const [ingredientRisks, setIngredientRisks] = useState<IngredientRisk[]>([]);
   const [analyzingIngredients, setAnalyzingIngredients] = useState(false);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
   const getCompatibilityColor = () => {
     if (analysis.isCompatible) return '#4CAF50';
@@ -45,6 +51,60 @@ export const DietaryAnalysis: React.FC<DietaryAnalysisProps> = (props) => {
   const getCompatibilityIcon = () => {
     if (analysis.isCompatible) return 'checkmark-circle';
     return analysis.riskLevel === 'high' ? 'warning' : 'alert-circle';
+  };
+
+  // Load user settings on component mount
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      const settings = await loadSettings();
+      setUserSettings(settings);
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+    }
+  };
+
+  // Handle "Tell Mom" button press
+  const handleTellMom = async () => {
+    if (!userSettings?.phoneNumber || !userSettings.phoneNumber.trim()) {
+      // Show alert if no phone number is set
+      Alert.alert(
+        'Phone Number Required',
+        'Please set a phone number in Settings to send notifications.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const verdict = analysis.isCompatible ? 'Good' : analysis.riskLevel === 'high' ? 'Avoid' : 'Caution';
+    
+    const smsMessage: SMSMessage = {
+      productName,
+      verdict,
+      dietaryRestriction: dietaryRestriction.name,
+      compatibilityScore: analysis.compatibilityScore,
+      barcode: barcode || undefined
+    };
+
+    await sendProductNotification(userSettings.phoneNumber, smsMessage);
+  };
+
+  // Handle "Ask Mom" button press
+  const handleAskMom = async () => {
+    if (!userSettings?.phoneNumber || !userSettings.phoneNumber.trim()) {
+      // Show alert if no phone number is set
+      Alert.alert(
+        'Phone Number Required',
+        'Please set a phone number in Settings to send notifications.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    await sendAskMomMessage(userSettings.phoneNumber, productName);
   };
 
 
@@ -253,11 +313,11 @@ Analysis powered by Google Gemini AI`;
       <View style={styles.parentSection}>
         <Text style={styles.parentSectionTitle}>Parent Communication</Text>
         <View style={styles.parentButtons}>
-          <TouchableOpacity style={styles.parentButton} onPress={() => {}}>
+          <TouchableOpacity style={styles.parentButton} onPress={handleTellMom}>
             <Text style={styles.parentButtonText}>📞 Tell Mom</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.parentButton} onPress={() => {}}>
+          <TouchableOpacity style={styles.parentButton} onPress={handleAskMom}>
             <Text style={styles.parentButtonText}>❓ Ask Mom</Text>
           </TouchableOpacity>
         </View>

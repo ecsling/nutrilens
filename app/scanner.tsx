@@ -5,13 +5,12 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Button,
     Image,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { DietaryAnalysis } from "../components/scanner/DietaryAnalysis";
 import { useDietaryPreferences } from "../components/scanner/useDietaryPreferences";
@@ -42,14 +41,35 @@ export default function ScannerScreen() {
   const allDietaryProfiles = getAllDietaryProfiles();
 
   if (!permission) {
-    return <Text>Requesting permissions...</Text>;
+    return (
+      <View style={styles.permissionContainer}>
+        <View style={styles.permissionContent}>
+          <Text style={styles.permissionTitle}>Requesting Camera Access...</Text>
+          <Text style={styles.permissionSubtitle}>Please wait while we check your permissions.</Text>
+        </View>
+      </View>
+    );
   }
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text>No access to camera</Text>
-        <Button onPress={requestPermission} title="Grant Permission" />
+      <View style={styles.permissionContainer}>
+        <View style={styles.permissionContent}>
+          <Text style={styles.permissionIcon}>📷</Text>
+          <Text style={styles.permissionTitle}>Camera Access Required</Text>
+          <Text style={styles.permissionSubtitle}>
+            NutriLens needs access to your camera to scan barcodes and help you check product safety.
+          </Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Grant Camera Access</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.permissionBackButton} 
+            onPress={() => (navigation as any).goBack()}
+          >
+            <Text style={styles.permissionBackButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -462,6 +482,7 @@ export default function ScannerScreen() {
                   dietaryRestriction={selectedProfile}
                   productName={product?.product_name || product?.food_name || 'Unknown Product'}
                   productIngredients={product?.ingredients_text || product?.nf_ingredient_statement}
+                  barcode={barcode || undefined}
                   onExplainMore={handleExplainDiet}
                 />
               )}
@@ -489,6 +510,61 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1,
     backgroundColor: '#000'
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  permissionContent: {
+    alignItems: 'center',
+    maxWidth: 320,
+  },
+  permissionIcon: {
+    fontSize: 64,
+    marginBottom: 24,
+  },
+  permissionTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1A1D29',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  permissionSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  permissionButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  permissionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  permissionBackButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  permissionBackButtonText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   backButton: {
     position: 'absolute',
