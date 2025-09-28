@@ -126,6 +126,34 @@ app.post('/add-product', async (req, res) => {
 
 
 // ============= FUNCTIONALITY FOR DISPLAYING HISTORY ============= // 
+app.get('/scan-history', (req, res) => {
+  const query = `
+    SELECT 
+      product_name,
+      product_brand,
+      product_ingredients,
+      diet_id,
+      diet_name,
+      is_compatible,
+      compatibility_score, 
+      risk_level,
+      reasons,
+      warnings,
+      recommendations,
+      product_source
+    FROM dietary_analysis
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching data:', err);
+      return res.status(500).json({ error: 'Database query failed' });
+    }
+    res.json(results);
+  });
+});
+
+
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on Port ${port}`);
