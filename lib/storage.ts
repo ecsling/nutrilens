@@ -31,6 +31,7 @@ export const loadSettings = async (): Promise<UserSettings> => {
     noMeat: false,
     noNuts: false,
     noSoy: false,
+    phoneNumber: '',
   };
 };
 

@@ -29,6 +29,7 @@ export interface UserSettings {
   noMeat: boolean;
   noNuts: boolean;
   noSoy: boolean;
+  phoneNumber?: string;
 }
 
 export interface IngredientFlag {

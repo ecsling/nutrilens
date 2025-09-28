@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -24,6 +25,7 @@ const SettingsScreen: React.FC = () => {
     noMeat: false,
     noNuts: false,
     noSoy: false,
+    phoneNumber: '',
   });
 
   // Load settings on component mount
@@ -41,7 +43,7 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
-  const togglePreference = async (key: keyof UserSettings) => {
+  const togglePreference = async (key: keyof BooleanUserSettings) => {
     const newPreferences = {
       ...dietaryPreferences,
       [key]: !dietaryPreferences[key]
@@ -58,33 +60,85 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
+  // Format phone number with dashes (XXX-XXX-XXXX)
+  const formatPhoneNumber = (phoneNumber: string): string => {
+    // Remove all non-digit characters
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    const limitedDigits = digitsOnly.substring(0, 10);
+    
+    // Add dashes in the right places
+    if (limitedDigits.length >= 6) {
+      return `${limitedDigits.substring(0, 3)}-${limitedDigits.substring(3, 6)}-${limitedDigits.substring(6)}`;
+    } else if (limitedDigits.length >= 3) {
+      return `${limitedDigits.substring(0, 3)}-${limitedDigits.substring(3)}`;
+    }
+    
+    return limitedDigits;
+  };
+
+  // Simple phone number validation
+  const isValidPhoneNumber = (phone: string): boolean => {
+    if (!phone.trim()) return true; // Empty is valid (optional field)
+    // Remove all non-digit characters for validation
+    const digitsOnly = phone.replace(/\D/g, '');
+    // Check if it has exactly 10 digits (US phone number format)
+    return digitsOnly.length === 10;
+  };
+
+  const updatePhoneNumber = async (phoneNumber: string) => {
+    // Only allow digits to be entered
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    // Format the phone number
+    const formattedNumber = formatPhoneNumber(digitsOnly);
+    
+    const newPreferences = {
+      ...dietaryPreferences,
+      phoneNumber: formattedNumber
+    };
+    
+    setDietaryPreferences(newPreferences);
+    
+    // Save to persistent storage
+    try {
+      await saveSettings(newPreferences);
+      console.log('✅ Saved phone number to storage:', formattedNumber);
+    } catch (error) {
+      console.error('❌ Error saving phone number:', error);
+    }
+  };
+
+  type BooleanUserSettings = Omit<UserSettings, 'phoneNumber'>;
+
   const dietaryOptions = [
     {
-      key: 'noDairy' as keyof UserSettings,
+      key: 'noDairy' as keyof BooleanUserSettings,
       title: 'Avoid Dairy',
       emoji: '🥛',
       description: 'Avoid products containing milk, cheese, butter, or other dairy ingredients'
     },
     {
-      key: 'noGluten' as keyof UserSettings,
+      key: 'noGluten' as keyof BooleanUserSettings,
       title: 'Avoid Gluten',
       emoji: '🌾',
       description: 'Avoid products containing wheat, barley, rye, or other gluten-containing grains'
     },
     {
-      key: 'noMeat' as keyof UserSettings,
+      key: 'noMeat' as keyof BooleanUserSettings,
       title: 'Avoid Meat',
       emoji: '🥩',
       description: 'Avoid products containing meat, poultry, fish, or other animal proteins'
     },
     {
-      key: 'noNuts' as keyof UserSettings,
+      key: 'noNuts' as keyof BooleanUserSettings,
       title: 'Avoid Nuts',
       emoji: '🥜',
       description: 'Avoid products containing tree nuts, peanuts, or nut-derived ingredients'
     },
     {
-      key: 'noSoy' as keyof UserSettings,
+      key: 'noSoy' as keyof BooleanUserSettings,
       title: 'Avoid Soy',
       emoji: '🫘',
       description: 'Avoid products containing soybeans, tofu, soy sauce, or other soy-derived ingredients'
@@ -96,8 +150,29 @@ const SettingsScreen: React.FC = () => {
       <GlobalHeader showBackButton={true} showSettingsButton={false} title="Settings" />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Dietary Preferences Section */}
+        {/* Phone Number Section */}
         <View style={[styles.section, styles.firstSection]}>
+          <Text style={styles.sectionTitle}>Phone Number</Text>
+          <View style={styles.inputItem}>
+            <TextInput
+              style={[
+                styles.phoneInput,
+                dietaryPreferences.phoneNumber && !isValidPhoneNumber(dietaryPreferences.phoneNumber) && styles.phoneInputError
+              ]}
+              value={dietaryPreferences.phoneNumber || ''}
+              onChangeText={updatePhoneNumber}
+              placeholder="123-456-7890"
+              placeholderTextColor={colors.text.secondary}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={12}
+            />
+          </View>
+        </View>
+
+        {/* Dietary Preferences Section */}
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dietary Preferences</Text>
           {dietaryOptions.map((option, index) => (
             <View key={option.key} style={styles.preferenceItem}>
@@ -219,6 +294,25 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     lineHeight: 16,
+  },
+  inputItem: {
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+  },
+  phoneInput: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.text.secondary + '30',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: colors.neutralBG,
+    width: '100%',
+  },
+  phoneInputError: {
+    borderColor: '#F44336',
+    borderWidth: 2,
   },
   infoItem: {
     flexDirection: 'row',

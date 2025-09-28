@@ -3,15 +3,15 @@ import { useNavigation } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from "expo-camera";
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Button,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Button,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { DietaryAnalysis } from "../components/scanner/DietaryAnalysis";
 import { useDietaryPreferences } from "../components/scanner/useDietaryPreferences";
@@ -289,8 +289,14 @@ export default function ScannerScreen() {
   };
 
   const resetScan = () => {
-    // Navigate to scanner route to fully reload the screen
-    (navigation as any).navigate('scanner');
+    // Reset all state to allow scanning again
+    setScanned(false);
+    setBarcode(null);
+    setProduct(null);
+    setSource(null);
+    setDietaryAnalysis(null);
+    setAnalysisLoading(false);
+    setLoading(false);
   };
 
   const handleDietarySelect = async (dietId: string | null) => {

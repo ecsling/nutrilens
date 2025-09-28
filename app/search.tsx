@@ -5,14 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
@@ -65,6 +65,7 @@ const SearchScreen: React.FC = () => {
     noMeat: false,
     noNuts: false,
     noSoy: false,
+    phoneNumber: '',
   });
 
   const trendingSearches = [

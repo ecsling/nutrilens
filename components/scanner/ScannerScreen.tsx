@@ -288,8 +288,14 @@ export default function ScannerScreen() {
   };
 
   const resetScan = () => {
-    // Navigate to scanner route to fully reload the screen
-    (navigation as any).navigate('scanner');
+    // Reset all state to allow scanning again
+    setScanned(false);
+    setBarcode(null);
+    setProduct(null);
+    setSource(null);
+    setDietaryAnalysis(null);
+    setAnalysisLoading(false);
+    setLoading(false);
   };
 
   const handleDietarySelect = async (dietId: string | null) => {
