@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -10,9 +10,67 @@ import {
 } from 'react-native';
 import GlobalHeader from '../components/GlobalHeader';
 import { colors } from '../lib/colors';
+import { loadHistory } from '../lib/storage';
+import { HistoryItem } from '../types';
 
 
 const HomeScreen: React.FC = () => {
+  const [recentScans, setRecentScans] = useState<HistoryItem[]>([]);
+
+  useEffect(() => {
+    const loadRecentScans = async () => {
+      try {
+        const history = await loadHistory();
+        setRecentScans(history.slice(0, 3)); // Show only the 3 most recent scans
+      } catch (error) {
+        console.error('Error loading recent scans:', error);
+        setRecentScans([]);
+      }
+    };
+
+    loadRecentScans();
+  }, []);
+
+  const getCompatibilityText = (verdict: 'Good' | 'Caution' | 'Avoid') => {
+    switch (verdict) {
+      case 'Good': return 'Compatible';
+      case 'Caution': return 'Caution';
+      case 'Avoid': return 'Avoid';
+      default: return 'Unknown';
+    }
+  };
+
+  const getCompatibilityColor = (verdict: 'Good' | 'Caution' | 'Avoid') => {
+    switch (verdict) {
+      case 'Good': return colors.accentBlue;
+      case 'Caution': return colors.warnYellow;
+      case 'Avoid': return colors.error;
+      default: return colors.text.secondary;
+    }
+  };
+
+  const getDietaryTag = (verdict: 'Good' | 'Caution' | 'Avoid') => {
+    switch (verdict) {
+      case 'Good': return 'Healthy';
+      case 'Caution': return 'Check';
+      case 'Avoid': return 'Warning';
+      default: return 'Unknown';
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d ago`;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -42,28 +100,6 @@ const HomeScreen: React.FC = () => {
         </Link>
       </View>
 
-      {/* Health Journey */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your Health Journey</Text>
-        <Text style={styles.sectionSubtitle}>Track your progress this month</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Ionicons name="trending-up" size={20} color={colors.accentBlue} />
-            <Text style={styles.statNumber}>127</Text>
-            <Text style={styles.statLabel}>Foods Scanned</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Ionicons name="shield-checkmark" size={20} color={colors.accentBlue} />
-            <Text style={styles.statNumber}>23</Text>
-            <Text style={styles.statLabel}>Warnings Avoided</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Ionicons name="star" size={20} color={colors.accentBlue} />
-            <Text style={styles.statNumber}>89%</Text>
-            <Text style={styles.statLabel}>Healthy Choices</Text>
-          </View>
-        </View>
-      </View>
 
       {/* Recent Scans */}
       <Link href="/history_menu" asChild>
@@ -71,44 +107,32 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Recent Scans</Text>
           <Text style={styles.sectionSubtitle}>Your latest food analysis</Text>
           
-          <View style={styles.scanCard}>
-            <View style={styles.scanCardContent}>
-              <View style={styles.scanCardInfo}>
-                <Text style={styles.scanCardTitle}>Natural Spring Water</Text>
-                <Text style={styles.scanCardBrand}>Real Canadian</Text>
-                <Text style={styles.scanCardCompatibility}>Compatible</Text>
+          {recentScans.length > 0 ? (
+            recentScans.map((scan) => (
+              <View key={scan.id} style={styles.scanCard}>
+                <View style={styles.scanCardContent}>
+                  <View style={styles.scanCardInfo}>
+                    <Text style={styles.scanCardTitle}>{scan.name}</Text>
+                    <Text style={styles.scanCardBrand}>{formatDate(scan.scannedAt)}</Text>
+                    <Text style={[
+                      styles.scanCardCompatibility,
+                      { color: getCompatibilityColor(scan.verdict) }
+                    ]}>
+                      {getCompatibilityText(scan.verdict)}
+                    </Text>
+                  </View>
+                  <View style={styles.scanCardRight}>
+                    <Text style={styles.scanCardTag}>{getDietaryTag(scan.verdict)}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.scanCardRight}>
-                <Text style={styles.scanCardTag}>Vegan</Text>
-              </View>
+            ))
+          ) : (
+            <View style={styles.emptyScansCard}>
+              <Text style={styles.emptyScansText}>No scans yet</Text>
+              <Text style={styles.emptyScansSubtext}>Scan some products to see them here!</Text>
             </View>
-          </View>
-
-          <View style={styles.scanCard}>
-            <View style={styles.scanCardContent}>
-              <View style={styles.scanCardInfo}>
-                <Text style={styles.scanCardTitle}>Fruit Snacks</Text>
-                <Text style={styles.scanCardBrand}>Welch's</Text>
-                <Text style={styles.scanCardCompatibility}>Compatible</Text>
-              </View>
-              <View style={styles.scanCardRight}>
-                <Text style={styles.scanCardTag}>Low Sodium</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.scanCard}>
-            <View style={styles.scanCardContent}>
-              <View style={styles.scanCardInfo}>
-                <Text style={styles.scanCardTitle}>Instant Ramen</Text>
-                <Text style={styles.scanCardBrand}>Maruchan</Text>
-                <Text style={[styles.scanCardCompatibility, { color: colors.warnYellow }]}>Caution</Text>
-              </View>
-              <View style={styles.scanCardRight}>
-                <Text style={styles.scanCardTag}>High Sodium</Text>
-              </View>
-            </View>
-          </View>
+          )}
         </TouchableOpacity>
       </Link>
       </ScrollView>
@@ -173,24 +197,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: 16,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 6,
-    color: colors.text.primary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
   scanCard: {
     backgroundColor: colors.neutralBG,
     borderRadius: 12,
@@ -232,6 +238,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.secondary,
     fontWeight: '600',
+  },
+  emptyScansCard: {
+    backgroundColor: colors.neutralBG,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyScansText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  emptyScansSubtext: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });
 

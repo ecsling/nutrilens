@@ -2,7 +2,7 @@
  * History screen showing previously scanned products
  */
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     FlatList,
     StyleSheet,
@@ -12,86 +12,91 @@ import {
 } from 'react-native';
 import GlobalHeader from '../components/GlobalHeader';
 import { colors } from '../lib/colors';
+import { loadHistory, removeFromHistory } from '../lib/storage';
 import { typography } from '../lib/typography';
+import { HistoryItem } from '../types';
 
 const HistoryScreen: React.FC = () => {
   const router = useRouter();
-  
-  // Hardcoded history data following the UI design
-  const [history] = useState([
-    {
-      id: '1',
-      name: 'Natural Spring Water',
-      brand: 'Real Canadian',
-      compatibility: 'Compatible',
-      tag: 'Vegan',
-      scannedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    },
-    {
-      id: '2',
-      name: 'Natural Spring Water',
-      brand: 'Real Canadian',
-      compatibility: 'Compatible',
-      tag: 'Vegetarian',
-      scannedAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-    },
-    {
-      id: '3',
-      name: 'Natural Spring Water',
-      brand: 'Real Canadian',
-      compatibility: 'Compatible',
-      tag: 'Vegetarian',
-      scannedAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-    },
-    {
-      id: '4',
-      name: 'Natural Spring Water',
-      brand: 'Real Canadian',
-      compatibility: 'Compatible',
-      tag: 'Low Sodium',
-      scannedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-    },
-    {
-      id: '5',
-      name: 'Fruit Snacks',
-      brand: 'Welch\'s',
-      compatibility: 'Compatible',
-      tag: 'Low Sodium',
-      scannedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    },
-    {
-      id: '6',
-      name: 'Greek Yogurt',
-      brand: 'Chobani',
-      compatibility: 'Compatible',
-      tag: 'Vegetarian',
-      scannedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    },
-    {
-      id: '7',
-      name: 'Almond Butter',
-      brand: 'Nutty Goodness',
-      compatibility: 'Compatible',
-      tag: 'Vegan',
-      scannedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-    },
-    {
-      id: '8',
-      name: 'Instant Ramen',
-      brand: 'Maruchan',
-      compatibility: 'Caution',
-      tag: 'High Sodium',
-      scannedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-    },
-  ]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleItemPress = (item: any) => {
+  // Load history on mount
+  useEffect(() => {
+    const loadHistoryData = async () => {
+      try {
+        const historyData = await loadHistory();
+        setHistory(historyData);
+        console.log(`✅ Loaded ${historyData.length} items from history`);
+      } catch (error) {
+        console.error('❌ Error loading history:', error);
+        setHistory([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHistoryData();
+  }, []);
+
+  const handleItemPress = (item: HistoryItem) => {
     // Navigate to product detail screen
     router.push('/product-detail');
   };
 
+  const handleDeleteItem = async (item: HistoryItem) => {
+    try {
+      await removeFromHistory(item.id);
+      setHistory(prev => prev.filter(h => h.id !== item.id));
+      console.log(`✅ Removed item ${item.name} from history`);
+    } catch (error) {
+      console.error('❌ Error removing item from history:', error);
+    }
+  };
 
-  const renderHistoryItem = ({ item }: { item: any }) => (
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d ago`;
+    }
+  };
+
+  const getCompatibilityText = (verdict: 'Good' | 'Caution' | 'Avoid') => {
+    switch (verdict) {
+      case 'Good': return 'Compatible';
+      case 'Caution': return 'Caution';
+      case 'Avoid': return 'Avoid';
+      default: return 'Unknown';
+    }
+  };
+
+  const getCompatibilityColor = (verdict: 'Good' | 'Caution' | 'Avoid') => {
+    switch (verdict) {
+      case 'Good': return colors.accentBlue;
+      case 'Caution': return colors.warnYellow;
+      case 'Avoid': return colors.error;
+      default: return colors.text.secondary;
+    }
+  };
+
+  const getDietaryTag = (verdict: 'Good' | 'Caution' | 'Avoid') => {
+    switch (verdict) {
+      case 'Good': return 'Healthy';
+      case 'Caution': return 'Check';
+      case 'Avoid': return 'Warning';
+      default: return 'Unknown';
+    }
+  };
+
+
+  const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
     <TouchableOpacity 
       style={styles.historyItem}
       onPress={() => handleItemPress(item)}
@@ -102,25 +107,36 @@ const HistoryScreen: React.FC = () => {
           <Text style={styles.itemName} numberOfLines={2}>
             {item.name}
           </Text>
-          <Text style={styles.itemBrand}>
-            {item.brand}
+          <Text style={styles.itemDate}>
+            {formatDate(item.scannedAt)}
           </Text>
           <Text style={[
             styles.compatibilityStatus,
-            { color: item.compatibility === 'Compatible' ? colors.accentBlue : colors.warnYellow }
+            { color: getCompatibilityColor(item.verdict) }
           ]}>
-            {item.compatibility}
+            {getCompatibilityText(item.verdict)}
           </Text>
         </View>
         
         <View style={styles.itemRight}>
           <Text style={styles.dietaryTag}>
-            {item.tag}
+            {getDietaryTag(item.verdict)}
           </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <GlobalHeader showBackButton={true} title="History" />
+        <View style={styles.centerContent}>
+          <Text style={styles.loadingText}>Loading your scan history...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -131,6 +147,12 @@ const HistoryScreen: React.FC = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={() => (
+          <View style={styles.centerContent}>
+            <Text style={styles.emptyText}>No scans yet</Text>
+            <Text style={styles.emptySubtext}>Scan some products to see them here!</Text>
+          </View>
+        )}
       />
     </View>
   );
@@ -141,6 +163,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.neutralBG,
     paddingTop: 15,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   listContainer: {
     flexGrow: 1,
@@ -170,7 +198,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: 4,
   },
-  itemBrand: {
+  itemDate: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     marginBottom: 8,
@@ -186,6 +214,23 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontWeight: typography.fontWeight.medium,
+  },
+  loadingText: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.base,
+    textAlign: 'center',
+  },
+  emptyText: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semiBold,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    textAlign: 'center',
   },
 });
 
