@@ -61,16 +61,12 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <GlobalHeader showBackButton={true} title="Dietary Preferences" />
+      <GlobalHeader showBackButton={true} title="Settings" />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header Message */}
-        <Text style={styles.headerMessage}>
-          Tell me what foods to watch out for, and I'll help you stay safe!
-        </Text>
-
         {/* Dietary Preferences Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.firstSection]}>
+          <Text style={styles.sectionTitle}>Dietary Preferences</Text>
           {dietaryOptions.map((option, index) => (
             <View key={option.key} style={styles.preferenceItem}>
               <View style={styles.preferenceLeft}>
@@ -140,6 +136,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
+  },
+  firstSection: {
+    marginTop: 30,
   },
   sectionTitle: {
     fontSize: typography.fontSize.lg,

@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: 'bold',
     color: colors.text.primary,
   },
   settingsButton: {

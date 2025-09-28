@@ -2,7 +2,7 @@
  * History screen showing previously scanned products
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
@@ -13,15 +13,15 @@ import {
     View
 } from 'react-native';
 import EmptyState from '../components/EmptyState';
+import GlobalHeader from '../components/GlobalHeader';
 import VerdictBadge from '../components/VerdictBadge';
 import { colors } from '../lib/colors';
-import { mockProducts } from '../lib/mockData';
 import { loadHistory, removeFromHistory } from '../lib/storage';
 import { typography } from '../lib/typography';
 import { HistoryItem } from '../types';
 
 const HistoryScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -42,11 +42,8 @@ const HistoryScreen: React.FC = () => {
   }, []);
 
   const handleItemPress = (item: HistoryItem) => {
-    // Find the original product
-    const product = mockProducts.find(p => p.id === item.productId);
-    if (product) {
-      (navigation as any).navigate('Home', { product });
-    }
+    // Navigate to product detail screen
+    router.push('/product-detail');
   };
 
   const handleDeleteItem = (item: HistoryItem) => {
@@ -126,6 +123,7 @@ const HistoryScreen: React.FC = () => {
   if (isLoading) {
     return (
       <View style={styles.container}>
+        <GlobalHeader showBackButton={true} title="History" />
         <View style={styles.centerContent}>
           <Text style={styles.loadingText}>Loading your history...</Text>
         </View>
@@ -135,6 +133,7 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <GlobalHeader showBackButton={true} title="History" />
       <FlatList
         data={history}
         renderItem={renderHistoryItem}
@@ -151,6 +150,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutralBG,
+    paddingTop: 15,
   },
   centerContent: {
     flex: 1,

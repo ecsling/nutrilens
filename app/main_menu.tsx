@@ -16,7 +16,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <GlobalHeader title="Make Healthier Food Choices" />
+      <GlobalHeader title="Home" />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
       <Text style={styles.headerSubtitle}>
@@ -66,43 +66,45 @@ const HomeScreen: React.FC = () => {
       </View>
 
       {/* Recent Scans */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Scans</Text>
-        <Text style={styles.sectionSubtitle}>Your latest food analysis</Text>
-        
-        <View style={styles.scanItem}>
-          <View>
-            <Text style={styles.scanTitle}>Organic Granola Bar</Text>
-            <Text style={styles.scanSubtitle}>Nature Valley • 2 hours ago</Text>
+      <Link href="/history_menu" asChild>
+        <TouchableOpacity style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Scans</Text>
+          <Text style={styles.sectionSubtitle}>Your latest food analysis</Text>
+          
+          <View style={styles.scanItem}>
+            <View>
+              <Text style={styles.scanTitle}>Organic Granola Bar</Text>
+              <Text style={styles.scanSubtitle}>Nature Valley • 2 hours ago</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>A</Text>
+            </View>
           </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>A</Text>
-          </View>
-        </View>
 
-        <View style={styles.scanItem}>
-          <View>
-            <Text style={styles.scanTitle}>Greek Yogurt</Text>
-            <Text style={styles.scanSubtitle}>Chobani • 1 day ago</Text>
+          <View style={styles.scanItem}>
+            <View>
+              <Text style={styles.scanTitle}>Greek Yogurt</Text>
+              <Text style={styles.scanSubtitle}>Chobani • 1 day ago</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>A+</Text>
+            </View>
           </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>A+</Text>
-          </View>
-        </View>
 
-        <View style={styles.scanItem}>
-          <View>
-            <Text style={styles.scanTitle}>Instant Ramen</Text>
-            <Text style={styles.scanSubtitle}>Maruchan • 2 days ago</Text>
+          <View style={styles.scanItem}>
+            <View>
+              <Text style={styles.scanTitle}>Instant Ramen</Text>
+              <Text style={styles.scanSubtitle}>Maruchan • 2 days ago</Text>
+            </View>
+            <View style={[styles.warningBadge]}>
+              <Text style={styles.warningBadgeText}>3 warnings</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: 'red' }]}>
+              <Text style={styles.badgeText}>D</Text>
+            </View>
           </View>
-          <View style={[styles.warningBadge]}>
-            <Text style={styles.warningBadgeText}>3 warnings</Text>
-          </View>
-          <View style={[styles.badge, { backgroundColor: 'red' }]}>
-            <Text style={styles.badgeText}>D</Text>
-          </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </Link>
       </ScrollView>
     </View>
   );
