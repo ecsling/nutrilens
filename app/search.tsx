@@ -1,7 +1,6 @@
 /**
  * Search screen for finding products
  */
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -13,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import EmptyState from '../components/EmptyState';
+import GlobalHeader from '../components/GlobalHeader';
 import SearchBar from '../components/SearchBar';
 import VerdictBadge from '../components/VerdictBadge';
 import { colors } from '../lib/colors';
@@ -219,23 +219,16 @@ const SearchScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header with Back Button and Search Bar */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.searchContainer}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search for food products..."
-            onClear={handleClearSearch}
-            showContainer={false}
-          />
-        </View>
+      <GlobalHeader showBackButton={true} title="Search Products" />
+      
+      {/* Search Bar */}
+      <View style={styles.searchSection}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search for food products..."
+          onClear={handleClearSearch}
+        />
       </View>
 
       <ScrollView
@@ -328,24 +321,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutralBG,
-    paddingTop: 50,
-    paddingBottom: 50,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  searchSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.text.secondary + '20',
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 12,
-  },
-  searchContainer: {
-    flex: 1,
   },
   scrollContainer: {
     paddingHorizontal: 20,

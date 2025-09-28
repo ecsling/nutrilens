@@ -8,15 +8,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import GlobalHeader from '../components/GlobalHeader';
 import { colors } from '../lib/colors';
 
 
 const HomeScreen: React.FC = () => {
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <Text style={styles.headerTitle}>Make Healthier Food Choices</Text>
+    <View style={styles.container}>
+      <GlobalHeader />
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Header */}
+        <Text style={styles.headerTitle}>Make Healthier Food Choices</Text>
       <Text style={styles.headerSubtitle}>
         Scan any packaged food to get detailed nutrition info and personalized health warnings
       </Text>
@@ -101,7 +104,8 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -109,7 +113,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutralBG,
-    paddingTop: 50,
   },
   content: {
     padding: 20,
