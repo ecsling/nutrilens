@@ -3,20 +3,20 @@ import { useNavigation } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from "expo-camera";
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Button,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Button,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { DietaryAnalysis } from "../components/scanner/DietaryAnalysis";
-import { useDietaryPreferences } from "../components/scanner/useDietaryPreferences";
-import { DietaryAnalysis as IDietaryAnalysis, ProductNutrition, getAllDietaryProfiles } from "../lib/dietary";
-import { analyzeDietaryCompatibility, explainDietaryRestriction } from "../services/APIcalls";
+import { DietaryAnalysis as IDietaryAnalysis, ProductNutrition, getAllDietaryProfiles } from '../../lib/dietary';
+import { analyzeDietaryCompatibility, explainDietaryRestriction } from '../../services/APIcalls';
+import { DietaryAnalysis } from './DietaryAnalysis';
+import { useDietaryPreferences } from './useDietaryPreferences';
 
 // ⚠️ Replace with your actual keys - or better yet, use environment variables
 const NUTRITIONIX_APP_ID = process.env.EXPO_PUBLIC_NUTRITIONIX_APP_ID || "YOUR_APP_ID";
@@ -33,10 +33,13 @@ export default function ScannerScreen() {
   const [source, setSource] = useState<string | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [dietaryAnalysis, setDietaryAnalysis] = useState<IDietaryAnalysis | null>(null);
+  const [showDietarySelector, setShowDietarySelector] = useState(false);
   
-  // Dietary preferences hook (from settings)
-  const { selectedDiet, selectedProfile } = useDietaryPreferences();
+  // Dietary preferences hook
+  const { selectedDiet, selectedProfile, saveDietaryPreference } = useDietaryPreferences();
   
+  // Get all dietary profiles for selection
+  const allDietaryProfiles = getAllDietaryProfiles();
 
   if (!permission) {
     return <Text>Requesting permissions...</Text>;
@@ -65,7 +68,6 @@ export default function ScannerScreen() {
 
     let fetchedProduct = null;
     let fetchedSource = null;
-    let productFound = false;
 
     // 1. Try OpenFoodFacts
     try {
@@ -82,8 +84,15 @@ export default function ScannerScreen() {
       if (json.status === 1) {
         fetchedSource = "OpenFoodFacts";
         fetchedProduct = json.product;
-        productFound = true;
-        console.log('✅ Product found in OpenFoodFacts');
+        setSource(fetchedSource);
+        setProduct(fetchedProduct);
+        setLoading(false);
+        
+        // Trigger dietary analysis if user has selected a diet
+        if (selectedProfile) {
+          analyzeProductDiet(fetchedProduct, fetchedSource);
+        }
+        return;
       }
     } catch (e) {
       console.error("OpenFoodFacts error:", e);
@@ -92,11 +101,9 @@ export default function ScannerScreen() {
       }
     }
 
-    // 2. Try Nutritionix (only if no product found yet)
-    if (!productFound) {
-      try {
-        console.log(`Trying Nutritionix for code: ${code}`);
-        const res = await fetch(
+    // 2. Try Nutritionix
+    try {
+      const res = await fetch(
         `https://trackapi.nutritionix.com/v2/search/item?upc=${code}`,
         {
           headers: {
@@ -106,53 +113,48 @@ export default function ScannerScreen() {
         }
       );
       const json = await res.json();
-        if (json.foods && json.foods.length > 0) {
-          fetchedSource = "Nutritionix";
-          fetchedProduct = json.foods[0];
-          productFound = true;
-          console.log('✅ Product found in Nutritionix');
+      if (json.foods && json.foods.length > 0) {
+        fetchedSource = "Nutritionix";
+        fetchedProduct = json.foods[0];
+        setSource(fetchedSource);
+        setProduct(fetchedProduct);
+        setLoading(false);
+        
+        // Trigger dietary analysis if user has selected a diet
+        if (selectedProfile) {
+          analyzeProductDiet(fetchedProduct, fetchedSource);
         }
-      } catch (e) {
-        console.error("Nutritionix error:", e);
+        return;
       }
+    } catch (e) {
+      console.error("Nutritionix error:", e);
     }
 
-    // 3. Try USDA (only if no product found yet)
-    if (!productFound) {
-      try {
-        console.log(`Trying USDA for code: ${code}`);
-        const res = await fetch(
+    // 3. Try USDA
+    try {
+      const res = await fetch(
         `https://api.nal.usda.gov/fdc/v1/foods/search?query=${code}&api_key=${USDA_API_KEY}`
       );
       const json = await res.json();
       if (json.foods && json.foods.length > 0) {
         fetchedSource = "USDA FoodData Central";
         fetchedProduct = json.foods[0];
-        productFound = true;
-        console.log('✅ Product found in USDA');
+        setSource(fetchedSource);
+        setProduct(fetchedProduct);
+        setLoading(false);
+        
+        // Trigger dietary analysis if user has selected a diet
+        if (selectedProfile) {
+          analyzeProductDiet(fetchedProduct, fetchedSource);
+        }
+        return;
       }
-      } catch (e) {
-        console.error("USDA error:", e);
-      }
+    } catch (e) {
+      console.error("USDA error:", e);
     }
 
-    // Set product data and trigger analysis ONCE
-    if (productFound && fetchedProduct && fetchedSource) {
-      setSource(fetchedSource);
-      setProduct(fetchedProduct);
-      setLoading(false);
-      
-      // 🚀 SINGLE Gemini API call per scan
-      if (selectedProfile) {
-        console.log(`🤖 Triggering SINGLE Gemini analysis for ${fetchedSource} product`);
-        analyzeProductDiet(fetchedProduct, fetchedSource);
-      }
-    } else {
-      // If no product found
-      setLoading(false);
-      setProduct(null);
-      Alert.alert("Product not found", "Barcode not found in any database. Try another product.");
-    }
+    setLoading(false);
+    setProduct(null);
   };
 
   // Convert product data to standardized format for dietary analysis
@@ -205,52 +207,34 @@ export default function ScannerScreen() {
     return nutrition;
   };
 
-  // Analyze product for dietary compatibility with enhanced caching
+  // Analyze product for dietary compatibility
   const analyzeProductDiet = async (productData: any, dataSource: string) => {
-    if (!selectedProfile) {
-      console.log('❌ No dietary profile selected, skipping analysis');
-      return;
-    }
+    if (!selectedProfile) return;
     
-    // Enhanced deduplication key including barcode for better accuracy
-    const productName = productData.product_name || productData.food_name || 'unknown';
-    const productKey = `${barcode}_${productName}_${selectedProfile.id}`;
-    
-    // Multiple checks to prevent duplicate API calls
-    if (analysisLoading) {
-      console.log('⏳ Analysis already in progress, skipping duplicate call');
-      return;
-    }
-    
-    if (dietaryAnalysis?.productKey === productKey) {
-      console.log('✅ Analysis already exists for this product+diet combination');
+    // Prevent duplicate calls for same product + diet combination
+    const productKey = `${productData.product_name || productData.food_name || 'unknown'}_${selectedProfile.id}`;
+    if (analysisLoading || dietaryAnalysis?.productKey === productKey) {
+      console.log('Analysis already in progress or completed for this product+diet, skipping duplicate call');
       return;
     }
 
     setAnalysisLoading(true);
-    console.log(`🚀 Starting AI analysis for "${productName}" with ${selectedProfile.name} diet...`);
-    console.log(`📊 Data source: ${dataSource}`);
+    console.log(`Starting AI analysis for ${selectedProfile.name} diet...`);
     const startTime = Date.now();
     
     try {
       const nutrition = convertToProductNutrition(productData, dataSource);
-      console.log('🔄 Product nutrition data prepared:', nutrition.productName);
+      console.log('Product nutrition data prepared:', nutrition);
       
-      console.log('🤖 Calling Gemini API (SINGLE OPTIMIZED CALL)...');
+      console.log('Calling Gemini API...');
       const analysis = await analyzeDietaryCompatibility(nutrition, selectedProfile);
       
       const endTime = Date.now();
-      console.log(`✅ AI analysis completed in ${endTime - startTime}ms`);
-      console.log(`💰 API call saved - using optimized single-call approach`);
-      
-      // Store analysis (productKey will be used for caching logic)
-      setDietaryAnalysis(analysis);
-      // Store productKey separately for deduplication checks
-      (analysis as any).productKey = productKey;
-      
+      console.log(`AI analysis completed in ${endTime - startTime}ms`);
+      setDietaryAnalysis({ ...analysis, productKey });
     } catch (error) {
       const endTime = Date.now();
-      console.error(`❌ Error analyzing dietary compatibility (${endTime - startTime}ms):`, error);
+      console.error(`Error analyzing dietary compatibility (${endTime - startTime}ms):`, error);
       
       Alert.alert(
         'Analysis Error', 
@@ -308,6 +292,15 @@ export default function ScannerScreen() {
     (navigation as any).navigate('scanner');
   };
 
+  const handleDietarySelect = async (dietId: string | null) => {
+    try {
+      await saveDietaryPreference(dietId);
+      setShowDietarySelector(false);
+    } catch (error) {
+      console.error('Error saving dietary preference:', error);
+      Alert.alert('Error', 'Could not save dietary preference. Please try again.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -327,28 +320,63 @@ export default function ScannerScreen() {
         }}
       />
 
-      {/* Dietary Status Indicators - Always visible at top */}
-      <View style={styles.topOverlay}>
-        {!selectedProfile ? (
-          <View style={styles.noDietaryAlert}>
-            <Text style={styles.noDietaryText}>⚠️ No dietary preference set</Text>
-            <Text style={styles.noDietarySubText}>Go to Settings to configure</Text>
-          </View>
-        ) : (
-          <View style={styles.dietaryStatusIndicator}>
-            <Text style={styles.dietaryStatusText}>
-              Scanning for: {selectedProfile.emoji} {selectedProfile.name}
+      {/* Dietary Restriction Selector - Only show when not scanned or no product found */}
+      {(!scanned || (scanned && !product && !loading)) && (
+        <View style={styles.topOverlay}>
+          <TouchableOpacity 
+            style={styles.dietaryButton}
+            onPress={() => setShowDietarySelector(!showDietarySelector)}
+          >
+            <Text style={styles.dietaryButtonText}>
+              {selectedProfile ? `${selectedProfile.emoji} ${selectedProfile.name}` : '🍽️ Select Diet'}
             </Text>
-          </View>
-        )}
-      </View>
+            <Ionicons name={showDietarySelector ? "chevron-up" : "chevron-down"} size={20} color="#fff" />
+          </TouchableOpacity>
+
+          {showDietarySelector && (
+            <View style={styles.dietaryDropdown}>
+              <ScrollView showsVerticalScrollIndicator={false} style={styles.dietaryList}>
+                {allDietaryProfiles.map((diet) => (
+                  <TouchableOpacity
+                    key={diet.id}
+                    style={[
+                      styles.dietaryItem,
+                      selectedDiet === diet.id && styles.dietaryItemSelected
+                    ]}
+                    onPress={() => handleDietarySelect(diet.id)}
+                  >
+                    <Text style={styles.dietaryEmoji}>{diet.emoji}</Text>
+                    <View style={styles.dietaryInfo}>
+                      <Text style={styles.dietaryName}>{diet.name}</Text>
+                      <Text style={styles.dietaryDescription}>{diet.description}</Text>
+                    </View>
+                    {selectedDiet === diet.id && (
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+                
+                {selectedDiet && (
+                  <TouchableOpacity
+                    style={styles.dietaryClearButton}
+                    onPress={() => handleDietarySelect(null)}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#F44336" />
+                    <Text style={styles.dietaryClearText}>Clear Selection</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Scan overlay frame */}
       {!scanned && (
         <View style={styles.scanOverlay}>
           <View style={styles.scanFrame}>
             <Text style={styles.scanInstructions}>
-              {selectedProfile ? `Scanning for ${selectedProfile.name}` : 'Point camera at barcode'}
+              {selectedProfile ? `Point camera at barcode` : 'Point camera at barcode'}
             </Text>
           </View>
         </View>
@@ -370,9 +398,10 @@ export default function ScannerScreen() {
         </View>
       )}
 
-      {/* Modern Product Card */}
+      {/* Modern Product Card - Redesigned */}
       {product && (
         <ScrollView style={styles.modernCard} showsVerticalScrollIndicator={false}>
+          {/* Clean Card Header */}
           <View style={styles.cleanCardHeader}>
             {/* Product Name at Top */}
             <Text style={styles.cleanTitle}>
@@ -429,51 +458,38 @@ export default function ScannerScreen() {
               </Text>
             )}
           </View>
-          
+
+          {/* Detailed Information (Scrollable) */}
           <View style={styles.detailsSection}>
-            <Text style={styles.sourceText}>Source: {source}</Text>
-          
-            {/* Clean Dietary Analysis */}
-          {selectedProfile && (
-            <View style={styles.dietarySection}>
-              {/* Compatibility Bar */}
-              {dietaryAnalysis && (
-                <View style={styles.compatibilityBarContainer}>
-                  <View style={styles.compatibilityBarWrapper}>
-                    <View 
-                      style={[
-                        styles.compatibilityBar, 
-                        { 
-                          width: `${dietaryAnalysis.compatibilityScore}%`,
-                          backgroundColor: getRiskColor(dietaryAnalysis.riskLevel)
-                        }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.compatibilityScoreText}>
-                    {dietaryAnalysis.compatibilityScore}% Compatible
-                  </Text>
-                </View>
-              )}
-
-              {analysisLoading && (
-                <View style={styles.analysisLoading}>
-                  <ActivityIndicator size="small" color="#4CAF50" />
-                  <Text style={styles.loadingTextSmall}>Analyzing...</Text>
-                </View>
-              )}
-
-              {dietaryAnalysis && (
-                <DietaryAnalysis 
-                  analysis={dietaryAnalysis}
-                  dietaryRestriction={selectedProfile}
-                  productName={product?.product_name || product?.food_name || 'Unknown Product'}
-                  productIngredients={product?.ingredients_text || product?.nf_ingredient_statement}
-                  onExplainMore={handleExplainDiet}
-                />
-              )}
+            {/* Source Info */}
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Source</Text>
+              <Text style={styles.infoValue}>{source}</Text>
             </View>
-          )}
+
+            {/* Brand Info */}
+            {(product.brands || product.brand_name) && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Brand</Text>
+                <Text style={styles.infoValue}>{product.brands || product.brand_name}</Text>
+              </View>
+            )}
+
+            {/* Clean Analysis Display */}
+            {selectedProfile && dietaryAnalysis && (
+              <DietaryAnalysis 
+                analysis={dietaryAnalysis}
+                dietaryRestriction={selectedProfile}
+                productName={product?.product_name || product?.food_name || 'Unknown Product'}
+                productIngredients={product?.ingredients_text || product?.nf_ingredient_statement}
+                onExplainMore={handleExplainDiet}
+              />
+            )}
+
+            {/* Action Button */}
+            <TouchableOpacity style={styles.actionButton} onPress={resetScan}>
+              <Text style={styles.actionButtonText}>Scan Again</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       )}
@@ -503,40 +519,6 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     zIndex: 10,
-  },
-  // New dietary status styles
-  noDietaryAlert: {
-    backgroundColor: 'rgba(255, 152, 0, 0.9)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  noDietaryText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  noDietarySubText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 2,
-    opacity: 0.9,
-  },
-  dietaryStatusIndicator: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  dietaryStatusText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   dietaryButton: {
     flexDirection: 'row',
@@ -701,6 +683,131 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
   },
+  infoBox: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxHeight: '60%',
+    backgroundColor: "rgba(255, 255, 255, 0.98)",
+    paddingTop: 20,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    zIndex: 10,
+  },
+  productHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  sourceText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  productImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  brandText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  nutritionSection: {
+    marginBottom: 20,
+  },
+  nutritionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  nutritionItem: {
+    width: '48%',
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  nutritionLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  nutritionValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  nutritionUnit: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  ingredientsSection: {
+    marginBottom: 20,
+  },
+  ingredientsText: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 8,
+  },
+  warningsSection: {
+    marginBottom: 20,
+  },
+  oldWarningText: {
+    color: "#F44336",
+    fontWeight: "600",
+    fontSize: 14,
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  dietarySection: {
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  analysisLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  loadingTextSmall: {
+    color: '#666',
+    fontSize: 14,
+    marginLeft: 8,
+    textAlign: 'center',
+  },
+  
+  // Modern Card Styles - Redesigned
   modernCard: {
     position: 'absolute',
     bottom: 0,
@@ -804,99 +911,135 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  profileBadge: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileEmoji: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  profileText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1D29',
+    marginBottom: 4,
+  },
+  profileSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  imageContainer: {
+    position: 'relative',
+    marginBottom: 24,
+  },
+  circularImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  placeholderImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  placeholderEmoji: {
+    fontSize: 48,
+  },
+  riskIndicator: {
+    position: 'absolute',
+    top: -12,
+    right: '35%',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  riskIcon: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  modernTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1A1D29',
+    textAlign: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
+  compatibilityStatus: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modernLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  modernLoadingText: {
+    fontSize: 14,
+    color: '#6B73FF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
   detailsSection: {
     paddingHorizontal: 24,
     paddingBottom: 32,
   },
-  sourceText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  nutritionSection: {
-    marginBottom: 20,
-  },
-  nutritionGrid: {
+  infoRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  nutritionItem: {
-    width: '48%',
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  nutritionLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+  infoLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
   },
-  nutritionValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  nutritionUnit: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  ingredientsSection: {
-    marginBottom: 20,
-  },
-  ingredientsText: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 18,
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 8,
-  },
-  warningsSection: {
-    marginBottom: 20,
-  },
-  warningText: {
-    color: "#F44336",
-    fontWeight: "600",
-    fontSize: 14,
-    backgroundColor: '#FFEBEE',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  dietarySection: {
-    marginBottom: 20,
-    marginTop: 10,
-  },
-  analysisLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    marginVertical: 8,
-  },
-  loadingTextSmall: {
-    color: '#666',
-    fontSize: 14,
-    marginLeft: 8,
-    textAlign: 'center',
+  infoValue: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 16,
   },
   compatibilityBarContainer: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   compatibilityBarWrapper: {
     width: '80%',
@@ -914,5 +1057,76 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
+  },
+  cleanAnalysisContainer: {
+    marginTop: 16,
+  },
+  reasonsContainer: {
+    marginBottom: 16,
+  },
+  reasonsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  reasonText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  warningsContainer: {
+    marginBottom: 16,
+  },
+  warningsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F59E0B',
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#D97706',
+    marginBottom: 4,
+    lineHeight: 20,
+    backgroundColor: '#FEF3C7',
+    padding: 8,
+    borderRadius: 6,
+  },
+  recommendationsContainer: {
+    marginBottom: 16,
+  },
+  recommendationsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#059669',
+    marginBottom: 8,
+  },
+  recommendationText: {
+    fontSize: 14,
+    color: '#047857',
+    marginBottom: 4,
+    lineHeight: 20,
+    backgroundColor: '#D1FAE5',
+    padding: 8,
+    borderRadius: 6,
+  },
+  actionButton: {
+    backgroundColor: '#6B73FF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24,
+    shadowColor: '#6B73FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

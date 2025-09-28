@@ -15,8 +15,17 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="index" options={{ title: 'Login',
+          headerLeft: () => null, // removes back arrow
+          gestureEnabled: false,  // disables swipe back on iOS
+          headerShown: true,
+        }} />
+          <Stack.Screen name="main_menu" options={{ title: 'NutriLens', headerShown: false }} />
+          <Stack.Screen name="scanner" options={{ title: 'Scan Product', headerShown: false }} />
+          <Stack.Screen name="search" options={{ title: 'Search Products', headerShown: false }} />
+          <Stack.Screen name="history_menu" options={{ title: 'History', headerShown: false }} />
+          <Stack.Screen name="settings" options={{ title: 'Settings', headerShown: false }} />
+          <Stack.Screen name="product-detail" options={{ title: 'Product Detail', headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
