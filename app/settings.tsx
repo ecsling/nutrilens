@@ -12,52 +12,28 @@ import {
   View,
 } from 'react-native';
 import GlobalHeader from '../components/GlobalHeader';
+import { useDietaryPreferences } from '../components/scanner/useDietaryPreferences';
 import { colors } from '../lib/colors';
+import { getAllDietaryProfiles } from '../lib/dietary';
 import { typography } from '../lib/typography';
 
 const SettingsScreen: React.FC = () => {
-  const [dietaryPreferences, setDietaryPreferences] = useState({
-    avoidDairy: false,
-    avoidGluten: false,
-    avoidMeat: false,
-    avoidNuts: false,
-    avoidSoy: false,
-  });
+  // Use the same dietary preferences system as the scanner
+  const { selectedDiet, selectedProfile, saveDietaryPreference, loading } = useDietaryPreferences();
+  
+  // Get all available dietary profiles
+  const allDietaryProfiles = getAllDietaryProfiles();
 
-  const togglePreference = (key: keyof typeof dietaryPreferences) => {
-    setDietaryPreferences(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  const handleDietarySelect = async (dietId: string) => {
+    try {
+      // Toggle: if already selected, deselect it
+      const newDietId = selectedDiet === dietId ? null : dietId;
+      await saveDietaryPreference(newDietId);
+    } catch (error) {
+      console.error('Error saving dietary preference:', error);
+    }
   };
 
-  const dietaryOptions = [
-    {
-      key: 'avoidDairy' as keyof typeof dietaryPreferences,
-      title: 'Avoid Dairy',
-      emoji: '❓',
-    },
-    {
-      key: 'avoidGluten' as keyof typeof dietaryPreferences,
-      title: 'Avoid Gluten',
-      emoji: '🍎',
-    },
-    {
-      key: 'avoidMeat' as keyof typeof dietaryPreferences,
-      title: 'Avoid Meat',
-      emoji: '🍴',
-    },
-    {
-      key: 'avoidNuts' as keyof typeof dietaryPreferences,
-      title: 'Avoid Nuts',
-      emoji: '🌿',
-    },
-    {
-      key: 'avoidSoy' as keyof typeof dietaryPreferences,
-      title: 'Avoid Soy',
-      emoji: '❄️',
-    },
-  ];
 
   return (
     <View style={styles.container}>
@@ -67,21 +43,59 @@ const SettingsScreen: React.FC = () => {
         {/* Dietary Preferences Section */}
         <View style={[styles.section, styles.firstSection]}>
           <Text style={styles.sectionTitle}>Dietary Preferences</Text>
-          {dietaryOptions.map((option, index) => (
-            <View key={option.key} style={styles.preferenceItem}>
+          
+          {selectedProfile && (
+            <View style={styles.currentSelectionBanner}>
+              <Text style={styles.currentSelectionText}>
+                Current Selection: {selectedProfile.emoji} {selectedProfile.name}
+              </Text>
+              <Text style={styles.currentSelectionDescription}>
+                {selectedProfile.description}
+              </Text>
+            </View>
+          )}
+          
+          <Text style={styles.sectionDescription}>
+            {selectedProfile 
+              ? "Tap another diet to switch, or tap your current selection to remove it."
+              : "Select your dietary restriction for personalized food scanning."
+            }
+          </Text>
+          
+          {allDietaryProfiles.map((diet, index) => (
+            <TouchableOpacity
+              key={diet.id}
+              style={[
+                styles.preferenceItem,
+                selectedDiet === diet.id && styles.selectedPreferenceItem,
+                index === allDietaryProfiles.length - 1 && styles.lastItem
+              ]}
+              onPress={() => handleDietarySelect(diet.id)}
+            >
               <View style={styles.preferenceLeft}>
                 <View style={styles.emojiContainer}>
-                  <Text style={styles.emoji}>{option.emoji}</Text>
+                  <Text style={styles.emoji}>{diet.emoji}</Text>
                 </View>
-                <Text style={styles.preferenceLabel}>{option.title}</Text>
+                <View style={styles.preferenceTextContainer}>
+                  <Text style={[
+                    styles.preferenceLabel,
+                    selectedDiet === diet.id && styles.selectedPreferenceLabel
+                  ]}>
+                    {diet.name}
+                  </Text>
+                  <Text style={styles.preferenceDescription}>
+                    Avoids: {diet.avoidIngredients.join(', ')}
+                  </Text>
+                </View>
               </View>
-              <Switch
-                value={dietaryPreferences[option.key]}
-                onValueChange={() => togglePreference(option.key)}
-                trackColor={{ false: colors.text.secondary + '40', true: colors.accentBlue + '40' }}
-                thumbColor={dietaryPreferences[option.key] ? colors.accentBlue : colors.text.secondary}
-              />
-            </View>
+              {selectedDiet === diet.id && (
+                <Ionicons 
+                  name="checkmark-circle" 
+                  size={24} 
+                  color={colors.accentBlue} 
+                />
+              )}
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -215,6 +229,60 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     textAlign: 'center',
+  },
+  // New styles for dietary preferences
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+  },
+  currentSelectionBanner: {
+    backgroundColor: colors.accentBlue + '10',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.accentBlue + '30',
+  },
+  currentSelectionText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.accentBlue,
+    marginBottom: 4,
+  },
+  currentSelectionDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+  },
+  sectionDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  selectedPreferenceItem: {
+    backgroundColor: colors.accentBlue + '05',
+    borderWidth: 1,
+    borderColor: colors.accentBlue + '20',
+  },
+  preferenceTextContainer: {
+    flex: 1,
+  },
+  preferenceDescription: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
+  selectedPreferenceLabel: {
+    color: colors.accentBlue,
+    fontWeight: typography.fontWeight.semiBold,
+  },
+  lastItem: {
+    borderBottomWidth: 0,
   },
 });
 

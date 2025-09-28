@@ -33,13 +33,10 @@ export default function ScannerScreen() {
   const [source, setSource] = useState<string | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [dietaryAnalysis, setDietaryAnalysis] = useState<IDietaryAnalysis | null>(null);
-  const [showDietarySelector, setShowDietarySelector] = useState(false);
   
-  // Dietary preferences hook
-  const { selectedDiet, selectedProfile, saveDietaryPreference } = useDietaryPreferences();
+  // Dietary preferences hook (from settings)
+  const { selectedDiet, selectedProfile } = useDietaryPreferences();
   
-  // Get all dietary profiles for selection
-  const allDietaryProfiles = getAllDietaryProfiles();
 
   if (!permission) {
     return <Text>Requesting permissions...</Text>;
@@ -311,15 +308,6 @@ export default function ScannerScreen() {
     (navigation as any).navigate('scanner');
   };
 
-  const handleDietarySelect = async (dietId: string | null) => {
-    try {
-      await saveDietaryPreference(dietId);
-      setShowDietarySelector(false);
-    } catch (error) {
-      console.error('Error saving dietary preference:', error);
-      Alert.alert('Error', 'Could not save dietary preference. Please try again.');
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -339,56 +327,21 @@ export default function ScannerScreen() {
         }}
       />
 
-      {/* Dietary Restriction Selector - Only show when not scanned or no product found */}
-      {(!scanned || (scanned && !product && !loading)) && (
-        <View style={styles.topOverlay}>
-          <TouchableOpacity 
-            style={styles.dietaryButton}
-            onPress={() => setShowDietarySelector(!showDietarySelector)}
-          >
-            <Text style={styles.dietaryButtonText}>
-              {selectedProfile ? `${selectedProfile.emoji} ${selectedProfile.name}` : '🍽️ Select Diet'}
+      {/* Dietary Status Indicators - Always visible at top */}
+      <View style={styles.topOverlay}>
+        {!selectedProfile ? (
+          <View style={styles.noDietaryAlert}>
+            <Text style={styles.noDietaryText}>⚠️ No dietary preference set</Text>
+            <Text style={styles.noDietarySubText}>Go to Settings to configure</Text>
+          </View>
+        ) : (
+          <View style={styles.dietaryStatusIndicator}>
+            <Text style={styles.dietaryStatusText}>
+              Scanning for: {selectedProfile.emoji} {selectedProfile.name}
             </Text>
-            <Ionicons name={showDietarySelector ? "chevron-up" : "chevron-down"} size={20} color="#fff" />
-          </TouchableOpacity>
-
-          {showDietarySelector && (
-            <View style={styles.dietaryDropdown}>
-              <ScrollView showsVerticalScrollIndicator={false} style={styles.dietaryList}>
-                {allDietaryProfiles.map((diet) => (
-                  <TouchableOpacity
-                    key={diet.id}
-                    style={[
-                      styles.dietaryItem,
-                      selectedDiet === diet.id && styles.dietaryItemSelected
-                    ]}
-                    onPress={() => handleDietarySelect(diet.id)}
-                  >
-                    <Text style={styles.dietaryEmoji}>{diet.emoji}</Text>
-                    <View style={styles.dietaryInfo}>
-                      <Text style={styles.dietaryName}>{diet.name}</Text>
-                      <Text style={styles.dietaryDescription}>{diet.description}</Text>
-                    </View>
-                    {selectedDiet === diet.id && (
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    )}
-                  </TouchableOpacity>
-                ))}
-                
-                {selectedDiet && (
-                  <TouchableOpacity
-                    style={styles.dietaryClearButton}
-                    onPress={() => handleDietarySelect(null)}
-                  >
-                    <Ionicons name="close-circle" size={20} color="#F44336" />
-                    <Text style={styles.dietaryClearText}>Clear Selection</Text>
-                  </TouchableOpacity>
-                )}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-      )}
+          </View>
+        )}
+      </View>
 
       {/* Scan overlay frame */}
       {!scanned && (
@@ -550,6 +503,40 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     zIndex: 10,
+  },
+  // New dietary status styles
+  noDietaryAlert: {
+    backgroundColor: 'rgba(255, 152, 0, 0.9)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  noDietaryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  noDietarySubText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 2,
+    opacity: 0.9,
+  },
+  dietaryStatusIndicator: {
+    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  dietaryStatusText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   dietaryButton: {
     flexDirection: 'row',
