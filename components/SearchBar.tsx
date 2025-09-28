@@ -12,48 +12,61 @@ interface SearchBarProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   onClear?: () => void;
+  onSubmitEditing?: () => void;
+  showContainer?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   value, 
   onChangeText, 
   placeholder = 'Search products...',
-  onClear
+  onClear,
+  onSubmitEditing,
+  showContainer = true
 }) => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Ionicons 
-          name="search" 
-          size={20} 
-          color={colors.text.secondary} 
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.text.secondary}
-          returnKeyType="search"
-          clearButtonMode="never"
-        />
-        {value.length > 0 && onClear && (
-          <TouchableOpacity 
-            onPress={onClear}
-            style={styles.clearButton}
-            accessibilityLabel="Clear search"
-          >
-            <Ionicons 
-              name="close-circle" 
-              size={20} 
-              color={colors.text.secondary} 
-            />
-          </TouchableOpacity>
-        )}
-      </View>
+  const searchContent = (
+    <View style={styles.searchContainer}>
+      <Ionicons 
+        name="search" 
+        size={20} 
+        color={colors.text.secondary} 
+        style={styles.searchIcon}
+      />
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.text.secondary}
+        returnKeyType="search"
+        clearButtonMode="never"
+        onSubmitEditing={onSubmitEditing}
+      />
+      {value.length > 0 && onClear && (
+        <TouchableOpacity 
+          onPress={onClear}
+          style={styles.clearButton}
+          accessibilityLabel="Clear search"
+        >
+          <Ionicons 
+            name="close-circle" 
+            size={20} 
+            color={colors.text.secondary} 
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
+
+  if (showContainer) {
+    return (
+      <View style={styles.container}>
+        {searchContent}
+      </View>
+    );
+  }
+
+  return searchContent;
 };
 
 const styles = StyleSheet.create({
