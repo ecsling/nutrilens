@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from "expo-camera";
 import React, { useState } from 'react';
 import {
@@ -12,9 +13,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useDietaryPreferences } from '../../hooks/useDietaryPreferences';
-import { analyzeDietaryCompatibility, explainDietaryRestriction } from '../../services/APIcall';
-import { DietaryAnalysis as IDietaryAnalysis, ProductNutrition, getAllDietaryProfiles } from '../../types/dietary';
+import { DietaryAnalysis as IDietaryAnalysis, ProductNutrition, getAllDietaryProfiles } from '../../lib/dietary';
+import { analyzeDietaryCompatibility, explainDietaryRestriction } from '../../services/APIcalls';
+import { DietaryAnalysis } from './DietaryAnalysis';
+import { useDietaryPreferences } from './useDietaryPreferences';
 
 // ⚠️ Replace with your actual keys - or better yet, use environment variables
 const NUTRITIONIX_APP_ID = process.env.EXPO_PUBLIC_NUTRITIONIX_APP_ID || "YOUR_APP_ID";
@@ -22,6 +24,7 @@ const NUTRITIONIX_API_KEY = process.env.EXPO_PUBLIC_NUTRITIONIX_API_KEY || "YOUn
 const USDA_API_KEY = process.env.EXPO_PUBLIC_USDA_API_KEY || "YOUR_USDA_KEY";
 
 export default function ScannerScreen() {
+  const navigation = useNavigation();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [barcode, setBarcode] = useState<string | null>(null);
@@ -93,7 +96,7 @@ export default function ScannerScreen() {
       }
     } catch (e) {
       console.error("OpenFoodFacts error:", e);
-      if (e.name === 'AbortError') {
+      if (e instanceof Error && e.name === 'AbortError') {
         console.log("OpenFoodFacts request timed out");
       }
     }
@@ -235,7 +238,7 @@ export default function ScannerScreen() {
       
       Alert.alert(
         'Analysis Error', 
-        `Could not analyze this product for your dietary restriction.\n\nError: ${error.message}\n\nTime: ${endTime - startTime}ms`
+        `Could not analyze this product for your dietary restriction.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n\nTime: ${endTime - startTime}ms`
       );
     } finally {
       setAnalysisLoading(false);
@@ -277,19 +280,16 @@ export default function ScannerScreen() {
   // Get color based on risk level for modern UI
   const getRiskColor = (riskLevel: string) => {
     switch (riskLevel) {
-      case 'low': return '#4CAF50';    // Green
-      case 'medium': return '#FF9800'; // Orange  
-      case 'high': return '#F44336';   // Red
-      default: return '#FFC107';       // Yellow
+      case 'low': return '#4CAF50';    // Green - Compatible
+      case 'medium': return '#FF9800'; // Orange - Risky  
+      case 'high': return '#F44336';   // Red - High Risk/Incompatible
+      default: return '#4CAF50';       // Default to Green
     }
   };
 
   const resetScan = () => {
-    setScanned(false);
-    setBarcode(null);
-    setProduct(null);
-    setSource(null);
-    setDietaryAnalysis(null);
+    // Navigate to scanner route to fully reload the screen
+    (navigation as any).navigate('scanner');
   };
 
   const handleDietarySelect = async (dietId: string | null) => {
@@ -320,61 +320,63 @@ export default function ScannerScreen() {
         }}
       />
 
-      {/* Dietary Restriction Selector */}
-      <View style={styles.topOverlay}>
-        <TouchableOpacity 
-          style={styles.dietaryButton}
-          onPress={() => setShowDietarySelector(!showDietarySelector)}
-        >
-          <Text style={styles.dietaryButtonText}>
-            {selectedProfile ? `${selectedProfile.emoji} ${selectedProfile.name}` : '🍽️ Select Diet'}
-          </Text>
-          <Ionicons name={showDietarySelector ? "chevron-up" : "chevron-down"} size={20} color="#fff" />
-        </TouchableOpacity>
+      {/* Dietary Restriction Selector - Only show when not scanned or no product found */}
+      {(!scanned || (scanned && !product && !loading)) && (
+        <View style={styles.topOverlay}>
+          <TouchableOpacity 
+            style={styles.dietaryButton}
+            onPress={() => setShowDietarySelector(!showDietarySelector)}
+          >
+            <Text style={styles.dietaryButtonText}>
+              {selectedProfile ? `${selectedProfile.emoji} ${selectedProfile.name}` : '🍽️ Select Diet'}
+            </Text>
+            <Ionicons name={showDietarySelector ? "chevron-up" : "chevron-down"} size={20} color="#fff" />
+          </TouchableOpacity>
 
-        {showDietarySelector && (
-          <View style={styles.dietaryDropdown}>
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.dietaryList}>
-              {allDietaryProfiles.map((diet) => (
-                <TouchableOpacity
-                  key={diet.id}
-                  style={[
-                    styles.dietaryItem,
-                    selectedDiet === diet.id && styles.dietaryItemSelected
-                  ]}
-                  onPress={() => handleDietarySelect(diet.id)}
-                >
-                  <Text style={styles.dietaryEmoji}>{diet.emoji}</Text>
-                  <View style={styles.dietaryInfo}>
-                    <Text style={styles.dietaryName}>{diet.name}</Text>
-                    <Text style={styles.dietaryDescription}>{diet.description}</Text>
-                  </View>
-                  {selectedDiet === diet.id && (
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                  )}
-                </TouchableOpacity>
-              ))}
-              
-              {selectedDiet && (
-                <TouchableOpacity
-                  style={styles.dietaryClearButton}
-                  onPress={() => handleDietarySelect(null)}
-                >
-                  <Ionicons name="close-circle" size={20} color="#F44336" />
-                  <Text style={styles.dietaryClearText}>Clear Selection</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </View>
-        )}
-      </View>
+          {showDietarySelector && (
+            <View style={styles.dietaryDropdown}>
+              <ScrollView showsVerticalScrollIndicator={false} style={styles.dietaryList}>
+                {allDietaryProfiles.map((diet) => (
+                  <TouchableOpacity
+                    key={diet.id}
+                    style={[
+                      styles.dietaryItem,
+                      selectedDiet === diet.id && styles.dietaryItemSelected
+                    ]}
+                    onPress={() => handleDietarySelect(diet.id)}
+                  >
+                    <Text style={styles.dietaryEmoji}>{diet.emoji}</Text>
+                    <View style={styles.dietaryInfo}>
+                      <Text style={styles.dietaryName}>{diet.name}</Text>
+                      <Text style={styles.dietaryDescription}>{diet.description}</Text>
+                    </View>
+                    {selectedDiet === diet.id && (
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+                
+                {selectedDiet && (
+                  <TouchableOpacity
+                    style={styles.dietaryClearButton}
+                    onPress={() => handleDietarySelect(null)}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#F44336" />
+                    <Text style={styles.dietaryClearText}>Clear Selection</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Scan overlay frame */}
       {!scanned && (
         <View style={styles.scanOverlay}>
           <View style={styles.scanFrame}>
             <Text style={styles.scanInstructions}>
-              {selectedProfile ? `Scanning for ${selectedProfile.name}` : 'Point camera at barcode'}
+              {selectedProfile ? `Point camera at barcode` : 'Point camera at barcode'}
             </Text>
           </View>
         </View>
@@ -396,64 +398,64 @@ export default function ScannerScreen() {
         </View>
       )}
 
-      {/* Modern Product Card */}
+      {/* Modern Product Card - Redesigned */}
       {product && (
         <ScrollView style={styles.modernCard} showsVerticalScrollIndicator={false}>
-          {/* Main Product Card */}
-          <View style={styles.cardHeader}>
-            {/* Diet Profile Badge */}
-            {selectedProfile && (
-              <View style={styles.profileBadge}>
-                <Text style={styles.profileEmoji}>{selectedProfile.emoji}</Text>
-                <Text style={styles.profileText}>{selectedProfile.name}</Text>
-                <Text style={styles.profileSubtext}>Compatibility we can trust</Text>
-              </View>
-            )}
+          {/* Clean Card Header */}
+          <View style={styles.cleanCardHeader}>
+            {/* Product Name at Top */}
+            <Text style={styles.cleanTitle}>
+              {product.product_name || product.food_name || "Unknown Product"}
+            </Text>
+            <Text style={styles.cleanSubtitle}>
+              {selectedProfile ? `${selectedProfile.name} Compatibility` : 'Nutritional Information'}
+            </Text>
             
             {/* Circular Food Image */}
-            <View style={styles.imageContainer}>
+            <View style={styles.cleanImageContainer}>
               {product.image_url ? (
                 <Image
                   source={{ uri: product.image_url }}
-                  style={styles.circularImage}
+                  style={styles.cleanCircularImage}
                 />
               ) : (
-                <View style={styles.placeholderImage}>
-                  <Text style={styles.placeholderEmoji}>🍽️</Text>
+                <View style={styles.cleanPlaceholderImage}>
+                  <Text style={styles.cleanPlaceholderEmoji}>🍽️</Text>
                 </View>
               )}
             </View>
 
-            {/* Color-coded Risk Indicator */}
+            {/* Color Circle Indicator */}
             {selectedProfile && dietaryAnalysis && (
               <View style={[
-                styles.riskIndicator,
+                styles.colorCircleIndicator,
                 { backgroundColor: getRiskColor(dietaryAnalysis.riskLevel) }
               ]}>
-                <Text style={styles.riskIcon}>
-                  {dietaryAnalysis.isCompatible ? '✓' : '⚠'}
+                <Text style={styles.circleIcon}>
+                  {dietaryAnalysis.isCompatible ? '✓' : '!'}
                 </Text>
               </View>
             )}
 
-            {/* Product Name */}
-            <Text style={styles.modernTitle}>
-              {product.product_name || product.food_name || "Unknown Product"}
-            </Text>
+            {/* Analysis Loading */}
+            {selectedProfile && analysisLoading && (
+              <View style={styles.colorCircleIndicator}>
+                <ActivityIndicator size="small" color="#fff" />
+              </View>
+            )}
 
-            {/* Compatibility Status */}
+            {/* Main Status Text */}
             {selectedProfile && dietaryAnalysis && (
-              <Text style={styles.compatibilityStatus}>
-                {dietaryAnalysis.isCompatible ? 'Safe to Consume' : 'Dietary Concerns'}
+              <Text style={styles.mainStatusText}>
+                {dietaryAnalysis.isCompatible ? 'Compatible' : 'Not Compatible'}
               </Text>
             )}
 
-            {/* Analysis Loading */}
-            {selectedProfile && analysisLoading && (
-              <View style={styles.modernLoading}>
-                <ActivityIndicator size="small" color="#6B73FF" />
-                <Text style={styles.modernLoadingText}>Analyzing...</Text>
-              </View>
+            {/* Score Text */}
+            {selectedProfile && dietaryAnalysis && (
+              <Text style={styles.scoreDescription}>
+                {dietaryAnalysis.compatibilityScore}% match for your {selectedProfile.name} diet
+              </Text>
             )}
           </View>
 
@@ -473,58 +475,15 @@ export default function ScannerScreen() {
               </View>
             )}
 
-            {/* AI Analysis Details */}
+            {/* Clean Analysis Display */}
             {selectedProfile && dietaryAnalysis && (
-              <View style={styles.analysisDetails}>
-                <Text style={styles.detailsTitle}>Analysis Details</Text>
-                
-                {/* Compatibility Score */}
-                <View style={styles.scoreContainer}>
-                  <Text style={styles.scoreLabel}>Compatibility Score</Text>
-                  <View style={styles.scoreBar}>
-                    <View 
-                      style={[
-                        styles.scoreProgress, 
-                        { 
-                          width: `${dietaryAnalysis.compatibilityScore}%`,
-                          backgroundColor: getRiskColor(dietaryAnalysis.riskLevel)
-                        }
-                      ]} 
-                    />
-                    <Text style={styles.scoreText}>{dietaryAnalysis.compatibilityScore}/100</Text>
-                  </View>
-                </View>
-
-                {/* Reasons */}
-                {dietaryAnalysis.reasons.length > 0 && (
-                  <View style={styles.reasonsContainer}>
-                    <Text style={styles.reasonsTitle}>Why?</Text>
-                    {dietaryAnalysis.reasons.slice(0, 2).map((reason, index) => (
-                      <Text key={index} style={styles.reasonText}>• {reason}</Text>
-                    ))}
-                  </View>
-                )}
-
-                {/* Warnings */}
-                {dietaryAnalysis.warnings.length > 0 && (
-                  <View style={styles.warningsContainer}>
-                    <Text style={styles.warningsTitle}>⚠️ Warnings</Text>
-                    {dietaryAnalysis.warnings.slice(0, 2).map((warning, index) => (
-                      <Text key={index} style={styles.warningText}>• {warning}</Text>
-                    ))}
-                  </View>
-                )}
-
-                {/* Recommendations */}
-                {dietaryAnalysis.recommendations.length > 0 && (
-                  <View style={styles.recommendationsContainer}>
-                    <Text style={styles.recommendationsTitle}>💡 Recommendations</Text>
-                    {dietaryAnalysis.recommendations.slice(0, 2).map((rec, index) => (
-                      <Text key={index} style={styles.recommendationText}>• {rec}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
+              <DietaryAnalysis 
+                analysis={dietaryAnalysis}
+                dietaryRestriction={selectedProfile}
+                productName={product?.product_name || product?.food_name || 'Unknown Product'}
+                productIngredients={product?.ingredients_text || product?.nf_ingredient_statement}
+                onExplainMore={handleExplainDiet}
+              />
             )}
 
             {/* Action Button */}
@@ -660,15 +619,22 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     position: 'absolute',
-    top: 60,
+    bottom: 40,
+    left: 20,
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(76, 175, 80, 0.9)',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 25,
-    zIndex: 10,
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 8,
   },
   resetButtonText: {
     color: '#fff',
@@ -841,31 +807,109 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  // Modern Card Styles
+  // Modern Card Styles - Redesigned
   modernCard: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    maxHeight: '65%',
+    maxHeight: '92%',
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     zIndex: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  cleanCardHeader: {
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingHorizontal: 32,
+    paddingBottom: 32,
+    backgroundColor: '#F8F9FF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+  },
+  cleanTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1A1D29',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  cleanSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  cleanImageContainer: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  cleanCircularImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  cleanPlaceholderImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  cleanPlaceholderEmoji: {
+    fontSize: 40,
+  },
+  colorCircleIndicator: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
     elevation: 8,
   },
-  cardHeader: {
-    alignItems: 'center',
-    paddingTop: 32,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: '#FAFBFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  circleIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  mainStatusText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1D29',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  scoreDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   profileBadge: {
     alignItems: 'center',
@@ -992,45 +1036,30 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
   },
-  analysisDetails: {
-    marginTop: 24,
+  compatibilityBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  detailsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1D29',
-    marginBottom: 16,
-  },
-  scoreContainer: {
-    marginBottom: 20,
-  },
-  scoreLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
+  compatibilityBarWrapper: {
+    width: '80%',
+    height: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  scoreBar: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  scoreProgress: {
+  compatibilityBar: {
     height: '100%',
-    borderRadius: 4,
-    position: 'absolute',
-    left: 0,
-    top: 0,
+    borderRadius: 6,
   },
-  scoreText: {
-    position: 'absolute',
-    right: 8,
-    top: -6,
-    fontSize: 12,
+  compatibilityScoreText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#374151',
+  },
+  cleanAnalysisContainer: {
+    marginTop: 16,
   },
   reasonsContainer: {
     marginBottom: 16,
