@@ -68,6 +68,7 @@ export default function ScannerScreen() {
 
     let fetchedProduct = null;
     let fetchedSource = null;
+    let productFound = false;
 
     // 1. Try OpenFoodFacts
     try {
@@ -84,15 +85,8 @@ export default function ScannerScreen() {
       if (json.status === 1) {
         fetchedSource = "OpenFoodFacts";
         fetchedProduct = json.product;
-        setSource(fetchedSource);
-        setProduct(fetchedProduct);
-        setLoading(false);
-        
-        // Trigger dietary analysis if user has selected a diet
-        if (selectedProfile) {
-          analyzeProductDiet(fetchedProduct, fetchedSource);
-        }
-        return;
+        productFound = true;
+        console.log('✅ Product found in OpenFoodFacts');
       }
     } catch (e) {
       console.error("OpenFoodFacts error:", e);
@@ -101,9 +95,11 @@ export default function ScannerScreen() {
       }
     }
 
-    // 2. Try Nutritionix
-    try {
-      const res = await fetch(
+    // 2. Try Nutritionix (only if no product found yet)
+    if (!productFound) {
+      try {
+        console.log(`Trying Nutritionix for code: ${code}`);
+        const res = await fetch(
         `https://trackapi.nutritionix.com/v2/search/item?upc=${code}`,
         {
           headers: {
@@ -113,48 +109,53 @@ export default function ScannerScreen() {
         }
       );
       const json = await res.json();
-      if (json.foods && json.foods.length > 0) {
-        fetchedSource = "Nutritionix";
-        fetchedProduct = json.foods[0];
-        setSource(fetchedSource);
-        setProduct(fetchedProduct);
-        setLoading(false);
-        
-        // Trigger dietary analysis if user has selected a diet
-        if (selectedProfile) {
-          analyzeProductDiet(fetchedProduct, fetchedSource);
+        if (json.foods && json.foods.length > 0) {
+          fetchedSource = "Nutritionix";
+          fetchedProduct = json.foods[0];
+          productFound = true;
+          console.log('✅ Product found in Nutritionix');
         }
-        return;
+      } catch (e) {
+        console.error("Nutritionix error:", e);
       }
-    } catch (e) {
-      console.error("Nutritionix error:", e);
     }
 
-    // 3. Try USDA
-    try {
-      const res = await fetch(
+    // 3. Try USDA (only if no product found yet)
+    if (!productFound) {
+      try {
+        console.log(`Trying USDA for code: ${code}`);
+        const res = await fetch(
         `https://api.nal.usda.gov/fdc/v1/foods/search?query=${code}&api_key=${USDA_API_KEY}`
       );
       const json = await res.json();
       if (json.foods && json.foods.length > 0) {
         fetchedSource = "USDA FoodData Central";
         fetchedProduct = json.foods[0];
-        setSource(fetchedSource);
-        setProduct(fetchedProduct);
-        setLoading(false);
-        
-        // Trigger dietary analysis if user has selected a diet
-        if (selectedProfile) {
-          analyzeProductDiet(fetchedProduct, fetchedSource);
-        }
-        return;
+        productFound = true;
+        console.log('✅ Product found in USDA');
       }
-    } catch (e) {
-      console.error("USDA error:", e);
+      } catch (e) {
+        console.error("USDA error:", e);
+      }
     }
 
-    setLoading(false);
-    setProduct(null);
+    // Set product data and trigger analysis ONCE
+    if (productFound && fetchedProduct && fetchedSource) {
+      setSource(fetchedSource);
+      setProduct(fetchedProduct);
+      setLoading(false);
+      
+      // 🚀 SINGLE Gemini API call per scan
+      if (selectedProfile) {
+        console.log(`🤖 Triggering SINGLE Gemini analysis for ${fetchedSource} product`);
+        analyzeProductDiet(fetchedProduct, fetchedSource);
+      }
+    } else {
+      // If no product found
+      setLoading(false);
+      setProduct(null);
+      Alert.alert("Product not found", "Barcode not found in any database. Try another product.");
+    }
   };
 
   // Convert product data to standardized format for dietary analysis
@@ -207,34 +208,52 @@ export default function ScannerScreen() {
     return nutrition;
   };
 
-  // Analyze product for dietary compatibility
+  // Analyze product for dietary compatibility with enhanced caching
   const analyzeProductDiet = async (productData: any, dataSource: string) => {
-    if (!selectedProfile) return;
+    if (!selectedProfile) {
+      console.log('❌ No dietary profile selected, skipping analysis');
+      return;
+    }
     
-    // Prevent duplicate calls for same product + diet combination
-    const productKey = `${productData.product_name || productData.food_name || 'unknown'}_${selectedProfile.id}`;
-    if (analysisLoading || dietaryAnalysis?.productKey === productKey) {
-      console.log('Analysis already in progress or completed for this product+diet, skipping duplicate call');
+    // Enhanced deduplication key including barcode for better accuracy
+    const productName = productData.product_name || productData.food_name || 'unknown';
+    const productKey = `${barcode}_${productName}_${selectedProfile.id}`;
+    
+    // Multiple checks to prevent duplicate API calls
+    if (analysisLoading) {
+      console.log('⏳ Analysis already in progress, skipping duplicate call');
+      return;
+    }
+    
+    if (dietaryAnalysis?.productKey === productKey) {
+      console.log('✅ Analysis already exists for this product+diet combination');
       return;
     }
 
     setAnalysisLoading(true);
-    console.log(`Starting AI analysis for ${selectedProfile.name} diet...`);
+    console.log(`🚀 Starting AI analysis for "${productName}" with ${selectedProfile.name} diet...`);
+    console.log(`📊 Data source: ${dataSource}`);
     const startTime = Date.now();
     
     try {
       const nutrition = convertToProductNutrition(productData, dataSource);
-      console.log('Product nutrition data prepared:', nutrition);
+      console.log('🔄 Product nutrition data prepared:', nutrition.productName);
       
-      console.log('Calling Gemini API...');
+      console.log('🤖 Calling Gemini API (SINGLE OPTIMIZED CALL)...');
       const analysis = await analyzeDietaryCompatibility(nutrition, selectedProfile);
       
       const endTime = Date.now();
-      console.log(`AI analysis completed in ${endTime - startTime}ms`);
-      setDietaryAnalysis({ ...analysis, productKey });
+      console.log(`✅ AI analysis completed in ${endTime - startTime}ms`);
+      console.log(`💰 API call saved - using optimized single-call approach`);
+      
+      // Store analysis (productKey will be used for caching logic)
+      setDietaryAnalysis(analysis);
+      // Store productKey separately for deduplication checks
+      (analysis as any).productKey = productKey;
+      
     } catch (error) {
       const endTime = Date.now();
-      console.error(`Error analyzing dietary compatibility (${endTime - startTime}ms):`, error);
+      console.error(`❌ Error analyzing dietary compatibility (${endTime - startTime}ms):`, error);
       
       Alert.alert(
         'Analysis Error', 

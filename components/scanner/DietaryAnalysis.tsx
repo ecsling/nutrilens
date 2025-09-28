@@ -93,17 +93,44 @@ Analysis powered by Google Gemini AI`;
   const toggleIngredientsList = async () => {
     setShowIngredients(!showIngredients);
     
+    // Only analyze if showing ingredients AND no cached analysis exists
     if (!showIngredients && productIngredients && ingredientRisks.length === 0) {
+      // Create cache key for ingredient analysis
+      const ingredientCacheKey = `${productIngredients}_${dietaryRestriction.id}`;
+      
+      // Check if we've already analyzed these ingredients for this diet
+      const cachedRisks = sessionStorage?.getItem(`ingredient_risks_${ingredientCacheKey}`);
+      if (cachedRisks) {
+        console.log('✅ Using cached ingredient analysis');
+        setIngredientRisks(JSON.parse(cachedRisks));
+        return;
+      }
+
       setAnalyzingIngredients(true);
+      console.log('🧪 Starting ingredient risk analysis...');
       
       try {
         const risks = await analyzeIngredientRisks(productIngredients, dietaryRestriction);
         setIngredientRisks(risks);
+        
+        // Cache the results for future use
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(`ingredient_risks_${ingredientCacheKey}`, JSON.stringify(risks));
+        }
+        
+        console.log('✅ Ingredient analysis completed and cached');
       } catch (error) {
-        console.error('Error analyzing ingredient risks:', error);
+        console.error('❌ Error analyzing ingredient risks:', error);
+        console.log('🔄 Falling back to basic ingredient analysis');
+        
         // Fallback to basic analysis
         const basicRisks = analyzeIngredientsBasic(productIngredients);
         setIngredientRisks(basicRisks);
+        
+        // Cache fallback results too
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(`ingredient_risks_${ingredientCacheKey}`, JSON.stringify(basicRisks));
+        }
       } finally {
         setAnalyzingIngredients(false);
       }
