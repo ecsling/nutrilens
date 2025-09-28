@@ -12,13 +12,13 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import EmptyState from '../components/EmptyState';
-import VerdictBadge from '../components/VerdictBadge';
-import { colors } from '../lib/colors';
-import { mockProducts } from '../lib/mockData';
-import { loadHistory, removeFromHistory } from '../lib/storage';
-import { typography } from '../lib/typography';
-import { HistoryItem } from '../types';
+import EmptyState from '../src/components/EmptyState';
+import VerdictBadge from '../src/components/VerdictBadge';
+import { colors } from '../src/lib/colors';
+import { mockProducts } from '../src/lib/mockData';
+import { loadHistory, removeFromHistory } from '../src/lib/storage';
+import { typography } from '../src/lib/typography';
+import { HistoryItem } from '../src/types';
 
 const HistoryScreen: React.FC = () => {
   const navigation = useNavigation();

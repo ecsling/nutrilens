@@ -7,8 +7,8 @@ import React from 'react';
 import { colors } from '../lib/colors';
 
 // Import screens
+import HomeScreen from '../../app/HomeScreen';
 import HistoryScreen from '../screens/HistoryScreen';
-import HomeScreen from '../screens/HomeScreen';
 import ScanScreen from '../screens/ScanScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SettingsScreen from '../screens/SettingsScreen';

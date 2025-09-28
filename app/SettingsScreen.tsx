@@ -11,10 +11,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import ToggleRow from '../components/ToggleRow';
-import { useSettings } from '../context/SettingsContext';
-import { colors } from '../lib/colors';
-import { typography } from '../lib/typography';
+import ToggleRow from '../src/components/ToggleRow';
+import { useSettings } from '../src/context/SettingsContext';
+import { colors } from '../src/lib/colors';
+import { typography } from '../src/lib/typography';
 
 const SettingsScreen: React.FC = () => {
   const { settings, updateSetting } = useSettings();

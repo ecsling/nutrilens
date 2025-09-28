@@ -11,15 +11,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import EmptyState from '../components/EmptyState';
-import SearchBar from '../components/SearchBar';
-import VerdictBadge from '../components/VerdictBadge';
-import { useSettings } from '../context/SettingsContext';
-import { useProducts } from '../hooks/useProducts';
-import { colors } from '../lib/colors';
-import { typography } from '../lib/typography';
-import { analyzeProduct } from '../lib/verdict';
-import { Product } from '../types';
+import EmptyState from '../src/components/EmptyState';
+import SearchBar from '../src/components/SearchBar';
+import VerdictBadge from '../src/components/VerdictBadge';
+import { useSettings } from '../src/context/SettingsContext';
+import { useProducts } from '../src/hooks/useProducts';
+import { colors } from '../src/lib/colors';
+import { typography } from '../src/lib/typography';
+import { analyzeProduct } from '../src/lib/verdict';
+import { Product } from '../src/types';
 
 const SearchScreen: React.FC = () => {
   const navigation = useNavigation();
