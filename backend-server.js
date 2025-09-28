@@ -68,3 +68,33 @@ app.post ('/login', (req, res) => {
 });
 
 // ============= FUNCTIONALITY FOR REGISTERING NEW PRODUCT ============= // 
+app.post('/register-analysis', async (req, res) => {
+ try {
+    const { product, diet, analysis } = req.body;
+
+    // Insert into dietary_analysis table
+    const [result] = await pool.query(
+      `INSERT INTO dietary_analysis 
+        (productName, dietName, isCompatible, riskLevel, compatibilityScore, reasons, warnings, recommendations) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        product.productName,              // e.g., "Coca Cola"
+        diet.name,                         // e.g., "Vegan"
+        analysis.isCompatible,             // boolean
+        analysis.riskLevel || null,        // string or null
+        analysis.compatibilityScore || null, // int or null
+        analysis.reasons ? JSON.stringify(analysis.reasons) : null,
+        analysis.warnings ? JSON.stringify(analysis.warnings) : null,
+        analysis.recommendations ? JSON.stringify(analysis.recommendations) : null
+      ]
+    );
+
+    res.status(201).json({ message: "Analysis saved", id: result.insertId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to save analysis" });
+  }
+});
+
+// ============= FUNCTIONALITY FOR DISPLAYING HISTORY ============= // 
+

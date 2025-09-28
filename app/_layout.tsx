@@ -16,11 +16,13 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ title: 'Login',
-          headerLeft: () => null, // removes back arrow
-          gestureEnabled: false,  // disables swipe back on iOS
+          headerLeft: () => null, 
+          gestureEnabled: false,  
           headerShown: true,
         }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="history_menu" options={{ title: 'Recents' }} />
+        <Stack.Screen name="main_menu" options={{ title: 'Home Page' }} />
+        <Stack.Screen name="scanner" options={{ title: 'Scan Products' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

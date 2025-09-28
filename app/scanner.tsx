@@ -32,10 +32,10 @@ export default function ScannerScreen() {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [dietaryAnalysis, setDietaryAnalysis] = useState<IDietaryAnalysis | null>(null);
   const [showDietarySelector, setShowDietarySelector] = useState(false);
-  
+
   // Dietary preferences hook
   const { selectedDiet, selectedProfile, saveDietaryPreference } = useDietaryPreferences();
-  
+
   // Get all dietary profiles for selection
   const allDietaryProfiles = getAllDietaryProfiles();
 
@@ -72,7 +72,7 @@ export default function ScannerScreen() {
       console.log(`Fetching from OpenFoodFacts for code: ${code}`);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
+
       const res = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${code}.json`,
         { signal: controller.signal }
@@ -85,7 +85,7 @@ export default function ScannerScreen() {
         setSource(fetchedSource);
         setProduct(fetchedProduct);
         setLoading(false);
-        
+
         // Trigger dietary analysis if user has selected a diet
         if (selectedProfile) {
           analyzeProductDiet(fetchedProduct, fetchedSource);
@@ -117,7 +117,7 @@ export default function ScannerScreen() {
         setSource(fetchedSource);
         setProduct(fetchedProduct);
         setLoading(false);
-        
+
         // Trigger dietary analysis if user has selected a diet
         if (selectedProfile) {
           analyzeProductDiet(fetchedProduct, fetchedSource);
@@ -140,7 +140,7 @@ export default function ScannerScreen() {
         setSource(fetchedSource);
         setProduct(fetchedProduct);
         setLoading(false);
-        
+
         // Trigger dietary analysis if user has selected a diet
         if (selectedProfile) {
           analyzeProductDiet(fetchedProduct, fetchedSource);
@@ -198,7 +198,6 @@ export default function ScannerScreen() {
       nutrition = {
         ...nutrition,
         calories: nutrients.find((n: any) => n.nutrientName?.includes('Energy'))?.value,
-        // Add other nutrient mappings as needed
       };
     }
 
@@ -208,7 +207,7 @@ export default function ScannerScreen() {
   // Analyze product for dietary compatibility
   const analyzeProductDiet = async (productData: any, dataSource: string) => {
     if (!selectedProfile) return;
-    
+
     // Prevent duplicate calls for same product + diet combination
     const productKey = `${productData.product_name || productData.food_name || 'unknown'}_${selectedProfile.id}`;
     if (analysisLoading || dietaryAnalysis?.productKey === productKey) {
@@ -219,23 +218,23 @@ export default function ScannerScreen() {
     setAnalysisLoading(true);
     console.log(`Starting AI analysis for ${selectedProfile.name} diet...`);
     const startTime = Date.now();
-    
+
     try {
       const nutrition = convertToProductNutrition(productData, dataSource);
       console.log('Product nutrition data prepared:', nutrition);
-      
+
       console.log('Calling Gemini API...');
       const analysis = await analyzeDietaryCompatibility(nutrition, selectedProfile);
-      
+
       const endTime = Date.now();
       console.log(`AI analysis completed in ${endTime - startTime}ms`);
       setDietaryAnalysis({ ...analysis, productKey });
     } catch (error) {
       const endTime = Date.now();
       console.error(`Error analyzing dietary compatibility (${endTime - startTime}ms):`, error);
-      
+
       Alert.alert(
-        'Analysis Error', 
+        'Analysis Error',
         `Could not analyze this product for your dietary restriction.\n\nError: ${error.message}\n\nTime: ${endTime - startTime}ms`
       );
     } finally {
@@ -293,6 +292,26 @@ export default function ScannerScreen() {
     }
   };
 
+  const saveAnalysisToDB = async (product: any, diet: any, analysis: any) => {
+    try {
+      const res = await fetch("http://localhost:5001/api/register-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product, diet, analysis }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        console.log("✅ Analysis saved with ID:", data.id);
+      } else {
+        console.error("❌ Failed to save:", data.error);
+      }
+    } catch (err) {
+      console.error("❌ Error saving analysis:", err);
+    }
+  };
+
+
   return (
     <View style={styles.container}>
       {/* Camera */}
@@ -313,7 +332,7 @@ export default function ScannerScreen() {
 
       {/* Dietary Restriction Selector */}
       <View style={styles.topOverlay}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.dietaryButton}
           onPress={() => setShowDietarySelector(!showDietarySelector)}
         >
@@ -345,7 +364,7 @@ export default function ScannerScreen() {
                   )}
                 </TouchableOpacity>
               ))}
-              
+
               {selectedDiet && (
                 <TouchableOpacity
                   style={styles.dietaryClearButton}
@@ -392,7 +411,7 @@ export default function ScannerScreen() {
         <ScrollView style={styles.infoBox} showsVerticalScrollIndicator={false}>
           <View style={styles.productHeader}>
             <Text style={styles.sourceText}>📡 Source: {source}</Text>
-            
+
             {product.image_url && (
               <Image
                 source={{ uri: product.image_url }}
@@ -405,12 +424,12 @@ export default function ScannerScreen() {
             </Text>
             <Text style={styles.brandText}>Brand: {product.brands || product.brand_name || "N/A"}</Text>
           </View>
-          
+
           {/* AI Dietary Analysis - now integrated into product section */}
           {selectedProfile && (
             <View style={styles.dietarySection}>
               <Text style={styles.sectionTitle}>🤖 AI Dietary Analysis</Text>
-              
+
               {analysisLoading && (
                 <View style={styles.analysisLoading}>
                   <ActivityIndicator size="small" color="#4CAF50" />
@@ -419,7 +438,7 @@ export default function ScannerScreen() {
               )}
 
               {dietaryAnalysis && (
-                <DietaryAnalysis 
+                <DietaryAnalysis
                   analysis={dietaryAnalysis}
                   dietaryRestriction={selectedProfile}
                   productName={product?.product_name || product?.food_name || 'Unknown Product'}
@@ -446,7 +465,7 @@ export default function ScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
     backgroundColor: '#000'
   },

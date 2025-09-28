@@ -30,13 +30,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState<string>("")
 
   const handleLogin = () => {
-    // Handle login logic here
-    //console.log("Login attempt:", { email, password })
-    // Navigate to home screen after successful login
     const user = users.find(u => u.email === email && u.password === password);
     if (user) {
       console.log('Login successful!', user);
-      // Navigate to home screen here, e.g.:
       router.replace('/main_menu');
     } else {
       console.log('Invalid email or password');
