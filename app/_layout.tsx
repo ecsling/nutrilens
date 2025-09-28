@@ -15,10 +15,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="index" options={{ title: 'Login',
-          headerLeft: () => null, // removes back arrow
-          gestureEnabled: false,  // disables swipe back on iOS
-          headerShown: true,
+        <Stack.Screen name="index" options={{ 
+          headerShown: false,
         }} />
           <Stack.Screen name="main_menu" options={{ title: 'NutriLens', headerShown: false }} />
           <Stack.Screen name="scanner" options={{ title: 'Scan Product', headerShown: false }} />

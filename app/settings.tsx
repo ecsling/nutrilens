@@ -2,8 +2,10 @@
  * Settings screen - Dietary Preferences
  */
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -19,6 +21,7 @@ import { typography } from '../lib/typography';
 import { UserSettings } from '../types';
 
 const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [dietaryPreferences, setDietaryPreferences] = useState<UserSettings>({
     noDairy: false,
     noGluten: false,
@@ -145,6 +148,30 @@ const SettingsScreen: React.FC = () => {
     },
   ];
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: () => {
+            // Clear all user data
+            // In a real app, you'd clear tokens, user data, etc.
+            
+            // Navigate back to login screen
+            (navigation as any).navigate('index');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <GlobalHeader showBackButton={true} showSettingsButton={false} title="Settings" />
@@ -218,6 +245,13 @@ const SettingsScreen: React.FC = () => {
           <Text style={styles.appName}>NutriLens</Text>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
           <Text style={styles.appTagline}>Helping kids make safe food choices</Text>
+        </View>
+
+        {/* Logout Button */}
+        <View style={styles.logoutSection}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -353,6 +387,28 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     textAlign: 'center',
+  },
+  logoutSection: {
+    marginTop: 20,
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  logoutButton: {
+    backgroundColor: '#F44336',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#F44336',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

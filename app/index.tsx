@@ -1,15 +1,15 @@
-import { useState } from "react"
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native"
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useState } from "react";
+import {
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 //Test Data, delete later
 export interface User {
@@ -57,8 +57,7 @@ export default function LoginScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to your account to continue</Text>
+            <Text style={styles.title}>NutriLens</Text>
           </View>
 
           {/* Form */}
@@ -150,16 +149,10 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 36,
+    fontWeight: "700",
     color: "#1F2937",
     marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 24,
   },
   form: {
     marginBottom: 24,
