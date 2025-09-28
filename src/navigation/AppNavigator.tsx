@@ -33,9 +33,9 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen 
         name="ProductDetail" 
         component={ProductDetailsScreen}
-        options={{ 
+        options={{
           title: 'Product Details',
-          headerBackTitleVisible: false,
+          headerBackTitle: '', // hides text
         }}
       />
     </Stack.Navigator>

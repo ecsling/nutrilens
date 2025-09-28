@@ -6,12 +6,12 @@ import { useNavigation } from '@react-navigation/native';
 import { CameraView } from 'expo-camera';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import OwlMascot from '../components/OwlMascot';
 import { useScanner } from '../hooks/useScanner';

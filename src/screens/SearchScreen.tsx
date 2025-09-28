@@ -16,7 +16,6 @@ import SearchBar from '../components/SearchBar';
 import VerdictBadge from '../components/VerdictBadge';
 import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../hooks/useProducts';
-import { colors } from '../lib/colors';
 import { typography } from '../lib/typography';
 import { analyzeProduct } from '../lib/verdict';
 import { Product } from '../types';
@@ -63,7 +62,7 @@ const SearchScreen: React.FC = () => {
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search for food products..."
+        placeholder="🔍 Search for food products..."
         onClear={handleClearSearch}
       />
 
@@ -73,7 +72,7 @@ const SearchScreen: React.FC = () => {
       >
         {/* Popular Searches */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular Searches</Text>
+          <Text style={styles.sectionTitle}>🌟 Popular Searches</Text>
           <View style={styles.tagsContainer}>
             {popularSearches.map((term) => (
               <TouchableOpacity
@@ -90,7 +89,7 @@ const SearchScreen: React.FC = () => {
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Searches</Text>
+            <Text style={styles.sectionTitle}>🕑 Recent Searches</Text>
             {recentSearches.map((term) => (
               <TouchableOpacity
                 key={term}
@@ -118,7 +117,7 @@ const SearchScreen: React.FC = () => {
                   <Image
                     source={{
                       uri:
-                        'https://via.placeholder.com/60x60/36C090/FFFFFF?text=Food',
+                        'https://via.placeholder.com/60x60/FFD54F/FFFFFF?text=🍎',
                     }}
                     style={styles.productImage}
                     defaultSource={{
@@ -146,7 +145,7 @@ const SearchScreen: React.FC = () => {
         ) : searchQuery.trim() ? (
           <EmptyState
             title="No Products Found"
-            message="Hoot! Try another word or check your spelling."
+            message="🦉 Hoot! Try another word or check your spelling."
             mood="concerned"
           />
         ) : null}
@@ -158,7 +157,7 @@ const SearchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutralBG,
+    backgroundColor: '#FFFDE7', // pastel yellow
     paddingTop: 50,
     paddingBottom: 50,
   },
@@ -167,7 +166,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   section: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -176,7 +175,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semiBold,
     marginBottom: 12,
-    color: colors.text.primary,
+    color: '#FF7043', // playful orange
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -184,7 +183,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   tag: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFECB3', // pastel orange-yellow
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -192,7 +191,8 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: typography.fontSize.sm,
-    color: colors.text.primary,
+    color: '#333',
+    fontWeight: '600',
   },
   recentItem: {
     paddingVertical: 8,
@@ -201,12 +201,12 @@ const styles = StyleSheet.create({
   },
   recentText: {
     fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
+    color: '#42A5F5', // blue accent for recent clicks
   },
   productItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: '#E1F5FE', // pastel blue
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -232,12 +232,12 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semiBold,
-    color: colors.text.primary,
+    color: '#333',
     marginBottom: 4,
   },
   productBrand: {
     fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
+    color: '#777',
   },
   verdictContainer: {
     marginLeft: 12,
