@@ -2,7 +2,7 @@
  * Search screen for finding products using OpenFoodFacts database
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,7 +18,7 @@ import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
 import VerdictBadge from '../components/VerdictBadge';
 import { colors } from '../lib/colors';
-import { loadRecentSearches, saveRecentSearch } from '../lib/storage';
+import { loadRecentSearches, loadSettings, saveRecentSearch } from '../lib/storage';
 import { typography } from '../lib/typography';
 import { analyzeProduct } from '../lib/verdict';
 import { SearchResult, getSearchSuggestions, searchOpenFoodFacts } from '../services/OpenFoodFactsAPI';
@@ -59,6 +59,13 @@ const SearchScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [userSettings, setUserSettings] = useState({
+    noDairy: false,
+    noGluten: false,
+    noMeat: false,
+    noNuts: false,
+    noSoy: false,
+  });
 
   const trendingSearches = [
     'Häagen-Dazs Ice Cream',
@@ -70,11 +77,19 @@ const SearchScreen: React.FC = () => {
     'Greek Yogurt'
   ];
 
-  // Load popular products and recent searches on component mount
+  // Load popular products, recent searches, and user settings on component mount
   useEffect(() => {
     loadPopularProducts();
     loadRecentSearchesFromStorage();
+    loadUserSettings();
   }, []);
+
+  // Refresh user settings when screen comes into focus (e.g., returning from settings)
+  useFocusEffect(
+    useCallback(() => {
+      loadUserSettings();
+    }, [])
+  );
 
   // Load search suggestions when query changes
   useEffect(() => {
@@ -85,6 +100,16 @@ const SearchScreen: React.FC = () => {
     }
   }, [searchQuery]);
 
+  // Refresh analysis when user settings change
+  useEffect(() => {
+    // Re-analyze popular products when settings change
+    if (popularProducts.length > 0) {
+      console.log('🔄 Settings changed, re-analyzing products...');
+      // The analysis will automatically update when the component re-renders
+      // because it uses the current userSettings state
+    }
+  }, [userSettings]);
+
   const loadRecentSearchesFromStorage = async () => {
     try {
       const stored = await loadRecentSearches();
@@ -94,6 +119,27 @@ const SearchScreen: React.FC = () => {
     } catch (error) {
       console.error('❌ Error loading recent searches:', error);
       setRecentSearches([]);
+    }
+  };
+
+  const loadUserSettings = async () => {
+    try {
+      const settings = await loadSettings();
+      setUserSettings(settings);
+      console.log('✅ Loaded user settings from storage:', settings);
+      
+      // Debug: Show which restrictions are active
+      const activeRestrictions = Object.entries(settings)
+        .filter(([key, value]) => value)
+        .map(([key]) => key);
+      
+      if (activeRestrictions.length > 0) {
+        console.log('🔍 Active dietary restrictions:', activeRestrictions);
+      } else {
+        console.log('🔍 No dietary restrictions active');
+      }
+    } catch (error) {
+      console.error('❌ Error loading user settings:', error);
     }
   };
 
@@ -297,14 +343,7 @@ const SearchScreen: React.FC = () => {
     }
   };
 
-  // Mock settings for verdict analysis
-  const mockSettings = {
-    noDairy: false,
-    noGluten: false,
-    noMeat: false,
-    noNuts: false,
-    noSoy: false,
-  };
+  // Use actual user settings for verdict analysis
 
   return (
     <View style={styles.container}>
@@ -326,6 +365,10 @@ const SearchScreen: React.FC = () => {
           </View>
           <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsButton}>
             <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
+            {/* Show indicator if any dietary restrictions are active */}
+            {Object.values(userSettings).some(setting => setting) && (
+              <View style={styles.activeRestrictionsIndicator} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -334,6 +377,44 @@ const SearchScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
+        {/* Active Dietary Restrictions */}
+        {Object.values(userSettings).some(setting => setting) && (
+          <View style={styles.activeRestrictionsSection}>
+            <Text style={styles.activeRestrictionsTitle}>Active Dietary Restrictions</Text>
+            <View style={styles.restrictionsList}>
+              {userSettings.noDairy && (
+                <View style={styles.restrictionTag}>
+                  <Text style={styles.restrictionEmoji}>🥛</Text>
+                  <Text style={styles.restrictionText}>No Dairy</Text>
+                </View>
+              )}
+              {userSettings.noGluten && (
+                <View style={styles.restrictionTag}>
+                  <Text style={styles.restrictionEmoji}>🌾</Text>
+                  <Text style={styles.restrictionText}>No Gluten</Text>
+                </View>
+              )}
+              {userSettings.noMeat && (
+                <View style={styles.restrictionTag}>
+                  <Text style={styles.restrictionEmoji}>🥩</Text>
+                  <Text style={styles.restrictionText}>No Meat</Text>
+                </View>
+              )}
+              {userSettings.noNuts && (
+                <View style={styles.restrictionTag}>
+                  <Text style={styles.restrictionEmoji}>🥜</Text>
+                  <Text style={styles.restrictionText}>No Nuts</Text>
+                </View>
+              )}
+              {userSettings.noSoy && (
+                <View style={styles.restrictionTag}>
+                  <Text style={styles.restrictionEmoji}>🫘</Text>
+                  <Text style={styles.restrictionText}>No Soy</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
         {/* Search Suggestions */}
         {suggestions.length > 0 && (
           <View style={styles.section}>
@@ -406,7 +487,7 @@ const SearchScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Popular Products</Text>
             {popularProducts.map((product) => {
               const productForAnalysis = convertToProduct(product);
-              const verdict = analyzeProduct(productForAnalysis, mockSettings);
+              const verdict = analyzeProduct(productForAnalysis, userSettings);
               return (
                 <TouchableOpacity
                   key={product.id}
@@ -465,7 +546,7 @@ const SearchScreen: React.FC = () => {
                 <Text style={styles.sectionTitle}>Search Results</Text>
                 {searchResults.map((product) => {
                   const productForAnalysis = convertToProduct(product);
-                  const verdict = analyzeProduct(productForAnalysis, mockSettings);
+                  const verdict = analyzeProduct(productForAnalysis, userSettings);
                   return (
                     <TouchableOpacity
                       key={product.id}
@@ -542,6 +623,54 @@ const styles = StyleSheet.create({
   settingsButton: {
     padding: 8,
     marginLeft: 12,
+    position: 'relative',
+  },
+  activeRestrictionsIndicator: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.alertRed,
+  },
+  activeRestrictionsSection: {
+    backgroundColor: colors.warnYellow + '20',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.warnYellow,
+  },
+  activeRestrictionsTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.text.primary,
+    marginBottom: 8,
+  },
+  restrictionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  restrictionTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.warnYellow,
+  },
+  restrictionEmoji: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  restrictionText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
   },
   scrollContainer: {
     paddingHorizontal: 20,

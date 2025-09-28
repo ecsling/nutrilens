@@ -2,7 +2,7 @@
  * Settings screen - Dietary Preferences
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -13,55 +13,87 @@ import {
 } from 'react-native';
 import GlobalHeader from '../components/GlobalHeader';
 import { colors } from '../lib/colors';
+import { loadSettings, saveSettings } from '../lib/storage';
 import { typography } from '../lib/typography';
+import { UserSettings } from '../types';
 
 const SettingsScreen: React.FC = () => {
-  const [dietaryPreferences, setDietaryPreferences] = useState({
-    avoidDairy: false,
-    avoidGluten: false,
-    avoidMeat: false,
-    avoidNuts: false,
-    avoidSoy: false,
+  const [dietaryPreferences, setDietaryPreferences] = useState<UserSettings>({
+    noDairy: false,
+    noGluten: false,
+    noMeat: false,
+    noNuts: false,
+    noSoy: false,
   });
 
-  const togglePreference = (key: keyof typeof dietaryPreferences) => {
-    setDietaryPreferences(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettingsFromStorage();
+  }, []);
+
+  const loadSettingsFromStorage = async () => {
+    try {
+      const settings = await loadSettings();
+      setDietaryPreferences(settings);
+      console.log('✅ Loaded settings from storage:', settings);
+    } catch (error) {
+      console.error('❌ Error loading settings:', error);
+    }
+  };
+
+  const togglePreference = async (key: keyof UserSettings) => {
+    const newPreferences = {
+      ...dietaryPreferences,
+      [key]: !dietaryPreferences[key]
+    };
+    
+    setDietaryPreferences(newPreferences);
+    
+    // Save to persistent storage
+    try {
+      await saveSettings(newPreferences);
+      console.log('✅ Saved settings to storage:', newPreferences);
+    } catch (error) {
+      console.error('❌ Error saving settings:', error);
+    }
   };
 
   const dietaryOptions = [
     {
-      key: 'avoidDairy' as keyof typeof dietaryPreferences,
+      key: 'noDairy' as keyof UserSettings,
       title: 'Avoid Dairy',
-      emoji: '❓',
+      emoji: '🥛',
+      description: 'Avoid products containing milk, cheese, butter, or other dairy ingredients'
     },
     {
-      key: 'avoidGluten' as keyof typeof dietaryPreferences,
+      key: 'noGluten' as keyof UserSettings,
       title: 'Avoid Gluten',
-      emoji: '🍎',
+      emoji: '🌾',
+      description: 'Avoid products containing wheat, barley, rye, or other gluten-containing grains'
     },
     {
-      key: 'avoidMeat' as keyof typeof dietaryPreferences,
+      key: 'noMeat' as keyof UserSettings,
       title: 'Avoid Meat',
-      emoji: '🍴',
+      emoji: '🥩',
+      description: 'Avoid products containing meat, poultry, fish, or other animal proteins'
     },
     {
-      key: 'avoidNuts' as keyof typeof dietaryPreferences,
+      key: 'noNuts' as keyof UserSettings,
       title: 'Avoid Nuts',
-      emoji: '🌿',
+      emoji: '🥜',
+      description: 'Avoid products containing tree nuts, peanuts, or nut-derived ingredients'
     },
     {
-      key: 'avoidSoy' as keyof typeof dietaryPreferences,
+      key: 'noSoy' as keyof UserSettings,
       title: 'Avoid Soy',
-      emoji: '❄️',
+      emoji: '🫘',
+      description: 'Avoid products containing soybeans, tofu, soy sauce, or other soy-derived ingredients'
     },
   ];
 
   return (
     <View style={styles.container}>
-      <GlobalHeader showBackButton={true} title="Settings" />
+      <GlobalHeader showBackButton={true} showSettingsButton={false} title="Settings" />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Dietary Preferences Section */}
@@ -73,7 +105,10 @@ const SettingsScreen: React.FC = () => {
                 <View style={styles.emojiContainer}>
                   <Text style={styles.emoji}>{option.emoji}</Text>
                 </View>
-                <Text style={styles.preferenceLabel}>{option.title}</Text>
+                <View style={styles.preferenceTextContainer}>
+                  <Text style={styles.preferenceLabel}>{option.title}</Text>
+                  <Text style={styles.preferenceDescription}>{option.description}</Text>
+                </View>
               </View>
               <Switch
                 value={dietaryPreferences[option.key]}
@@ -161,6 +196,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  preferenceTextContainer: {
+    flex: 1,
+  },
   emojiContainer: {
     width: 32,
     height: 32,
@@ -175,6 +213,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
     color: colors.text.primary,
+    marginBottom: 2,
+  },
+  preferenceDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: 16,
   },
   infoItem: {
     flexDirection: 'row',

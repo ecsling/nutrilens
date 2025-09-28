@@ -9,11 +9,13 @@ import { colors } from '../lib/colors';
 
 interface GlobalHeaderProps {
   showBackButton?: boolean;
+  showSettingsButton?: boolean;
   title?: string;
 }
 
 const GlobalHeader: React.FC<GlobalHeaderProps> = ({ 
   showBackButton = false, 
+  showSettingsButton = true,
   title 
 }) => {
   const router = useRouter();
@@ -44,12 +46,14 @@ const GlobalHeader: React.FC<GlobalHeaderProps> = ({
         )}
       </View>
       
-      <TouchableOpacity 
-        style={styles.settingsButton}
-        onPress={handleSettingsPress}
-      >
-        <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
-      </TouchableOpacity>
+      {showSettingsButton && (
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={handleSettingsPress}
+        >
+          <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
