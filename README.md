@@ -2,6 +2,8 @@ NutriLens was built for Technova. It's an app that connects parents and their ch
 
 This app is aimed towards parents who have young children with strict dietary restrictions who may not know to correctly judge food safety on their own yet. This takes the pressure off parents and helps keesp the children safe and healthy !
 
+Devpost: https://devpost.com/software/nutrilens-jla6p0 
+
 1. Install dependencies
 
    ```bash
